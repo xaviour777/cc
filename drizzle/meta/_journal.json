@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793066805498,
+      "tag": "0000_fat_rockslide",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+Content Colony - Windows par chalane ka tareeqa (port 1002)
+
+1) Is folder me (jahan package.json hai) address bar me "cmd" likh kar Enter dabayein.
+2) npm install
+3) npm run db:setup        (sirf pehli dafa - database aur sample data banata hai)
+4) npm run dev
+5) Browser me kholein: http://localhost:1002
+   Admin: http://localhost:1002/admin/login
+   Email: admin@contentcolony.pk   Password: colony-admin-2025
+
+Database ".data" folder me khud ban jata hai, PostgreSQL install karne ki zaroorat nahi.
+Database reset karna ho to server band karein, ".data" folder delete karein, phir step 3 dobara.
