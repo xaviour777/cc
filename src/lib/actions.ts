@@ -20,6 +20,8 @@ import {
 import {
   createBooking,
   getAvailability,
+  getAvailabilityCalendar,
+  getHidePrices,
   getMinStayNights,
   getPlansFor,
   getSetting,
@@ -45,7 +47,10 @@ export async function checkStayAvailability(checkIn: string, checkOut: string) {
     .select()
     .from(accommodationTypes)
     .where(eq(accommodationTypes.active, true));
-  const availability = await getAvailability(checkIn, checkOut);
+  const [availability, hidePrices] = await Promise.all([
+    getAvailability(checkIn, checkOut),
+    getHidePrices(),
+  ]);
 
   const products = await Promise.all(
     types.map(async (t) => {
@@ -56,10 +61,13 @@ export async function checkStayAvailability(checkIn: string, checkOut: string) {
       return {
         key: t.key,
         name: t.name,
-        nightlyPkr: nightly,
+        nightlyPkr: hidePrices ? 0 : nightly,
         available: avail?.availableUnits ?? 0,
         total: avail?.totalUnits ?? 0,
-        quote: quote.ok ? { totalPkr: quote.totalPkr, lines: quote.lines } : null,
+        quote:
+          quote.ok && !hidePrices
+            ? { totalPkr: quote.totalPkr, lines: quote.lines }
+            : null,
       };
     })
   );
@@ -72,6 +80,15 @@ export async function checkStayAvailability(checkIn: string, checkOut: string) {
       "Good things take time. Stay at least 3 nights and feel at home.",
     products,
   };
+}
+
+// ---------- Month calendar for the booking widget ----------
+export async function getStayCalendar(month: string) {
+  if (!/^\d{4}-\d{2}$/.test(month)) return [];
+  const first = `${month}-01`;
+  const [y, m] = month.split("-").map(Number);
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return getAvailabilityCalendar(first, days);
 }
 
 // ---------- Create booking ----------
@@ -99,14 +116,18 @@ export async function submitBooking(input: {
     phone: input.guestPhone,
     tags: ["content-colony", "booking-enquiry", input.accommodationKey.toLowerCase()],
     source: "Content Colony — Booking",
-    notes: `Ref ${result.reference} · ${input.checkIn} → ${input.checkOut} · PKR ${result.totalPkr}`,
+    notes: `Ref ${result.reference} · ${input.checkIn} → ${input.checkOut} · ${
+      result.pricePending ? "pre-booking, price to agree" : `PKR ${result.totalPkr}`
+    }`,
     utm: input.utm ?? null,
   });
   await recordNotification({
     channel: "EMAIL",
     to: input.guestEmail,
     subject: `Your Content Colony booking request ${result.reference}`,
-    body: `Assalam-o-alaikum ${input.guestName}! We received your booking request (${result.reference}) for ${input.checkIn} → ${input.checkOut}, ${result.nights} nights, total PKR ${result.totalPkr}. Complete verification and payment via your booking page.`,
+    body: result.pricePending
+      ? `Assalam-o-alaikum ${input.guestName}! We received your pre-booking request (${result.reference}) for ${input.checkIn} → ${input.checkOut}, ${result.nights} nights. Our team will reach out on WhatsApp with your price.`
+      : `Assalam-o-alaikum ${input.guestName}! We received your booking request (${result.reference}) for ${input.checkIn} → ${input.checkOut}, ${result.nights} nights, total PKR ${result.totalPkr}. Complete verification and payment via your booking page.`,
     entityType: "booking",
     entityId: result.bookingId,
   });

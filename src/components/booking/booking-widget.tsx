@@ -19,6 +19,7 @@ import {
   submitBooking,
 } from "@/lib/actions";
 import { addDaysISO, cx, nightsBetween, pkr, todayISO } from "@/lib/utils";
+import AvailabilityCalendar from "@/components/booking/availability-calendar";
 
 type AvailabilityResult = Extract<
   Awaited<ReturnType<typeof checkStayAvailability>>,
@@ -38,9 +39,13 @@ export type StayProduct = {
 export default function BookingWidget({
   products,
   minStay,
+  hidePrices = false,
+  whatsapp = "",
 }: {
   products: StayProduct[];
   minStay: number;
+  hidePrices?: boolean;
+  whatsapp?: string;
 }) {
   const [typeKey, setTypeKey] = useState<"SHARED_BUNK" | "PRIVATE_ROOM">("SHARED_BUNK");
   const [checkIn, setCheckIn] = useState(() => addDaysISO(todayISO(), 1));
@@ -99,6 +104,9 @@ export default function BookingWidget({
     return avail && p ? p.available < 1 : false;
   }
 
+  const waLink = (text: string) =>
+    `https://wa.me/${whatsapp}?text=${encodeURIComponent(text)}`;
+
   const adjustToMinStay = () => {
     setCheckOut(addDaysISO(checkIn, minStay));
     setMinStayHit(false);
@@ -147,14 +155,16 @@ export default function BookingWidget({
         </div>
         <h3 className="display-md mt-6">You&apos;re almost home.</h3>
         <p className="text-ink-soft mt-3 max-w-md mx-auto">
-          Booking request received. Your reference is
+          {result.pricePending ? "Pre-booking request received" : "Booking request received"}. Your reference is
         </p>
         <p className="font-display font-extrabold text-3xl md:text-4xl tracking-tight mt-2 select-all">
           {result.reference}
         </p>
         <div className="grid sm:grid-cols-3 gap-3 mt-8 text-left max-w-2xl mx-auto">
           {[
-            { icon: Wallet, title: "Reserve with payment", text: `${pkr(result.totalPkr)} via your chosen method — details are on your booking page.` },
+            result.pricePending
+              ? { icon: Wallet, title: "Get your price", text: "We'll message you on WhatsApp with your price and offers. Once agreed, pay from your booking page." }
+              : { icon: Wallet, title: "Reserve with payment", text: `${pkr(result.totalPkr)} via your chosen method — details are on your booking page.` },
             { icon: ShieldCheck, title: "Verify your ID", text: "Upload CNIC / NICOP / passport — required for legal registration." },
             { icon: BadgeCheck, title: "Sign & check in", text: "Sign the stay agreement, then arrive and meet your people." },
           ].map((s) => (
@@ -165,9 +175,21 @@ export default function BookingWidget({
             </div>
           ))}
         </div>
-        <Link href={`/booking/${result.reference}`} className="btn btn-primary mt-8">
-          Open your booking portal <ArrowRight size={16} />
-        </Link>
+        <div className="flex flex-wrap justify-center gap-3 mt-8">
+          {result.pricePending && whatsapp && (
+            <a
+              href={waLink(`Assalam-o-alaikum! My pre-booking reference is ${result.reference} (${product.name}, ${checkIn} to ${checkOut}).`)}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-primary"
+            >
+              Chat on WhatsApp
+            </a>
+          )}
+          <Link href={`/booking/${result.reference}`} className={result.pricePending && whatsapp ? "btn btn-outline" : "btn btn-primary"}>
+            Open your booking portal <ArrowRight size={16} />
+          </Link>
+        </div>
       </div>
     );
   }
@@ -203,7 +225,13 @@ export default function BookingWidget({
                 <p className="font-semibold mt-3">{p.name}</p>
                 <p className="text-xs text-ink-soft mt-1 leading-relaxed">{p.tagline}</p>
                 <p className="mt-3 text-sm font-semibold">
-                  {pkr(p.nightlyPkr)} <span className="font-normal text-ink-soft">/ night</span>
+                  {hidePrices ? (
+                    "Price on request"
+                  ) : (
+                    <>
+                      {pkr(p.nightlyPkr)} <span className="font-normal text-ink-soft">/ night</span>
+                    </>
+                  )}
                 </p>
                 {avail && (
                   <p className="mt-1 text-[11.5px] tracking-wide uppercase text-ink-soft">
@@ -215,6 +243,20 @@ export default function BookingWidget({
               </button>
             );
           })}
+        </div>
+
+        {/* Live availability calendar */}
+        <div className="mt-4">
+          <AvailabilityCalendar
+            typeKey={typeKey}
+            checkIn={checkIn}
+            checkOut={checkOut}
+            minStay={minStay}
+            onPick={(a, b) => {
+              setCheckIn(a);
+              setCheckOut(b);
+            }}
+          />
         </div>
 
         {/* Dates */}
@@ -280,7 +322,7 @@ export default function BookingWidget({
               </p>
             )}
           </div>
-          <div>
+          <div className={hidePrices ? "hidden" : undefined}>
             <label className="label">Payment</label>
             <select className="field" value={method} onChange={(e) => setMethod(e.target.value as typeof method)}>
               <option value="BANK_TRANSFER">Bank transfer</option>
@@ -329,14 +371,16 @@ export default function BookingWidget({
             "Full for these dates — choose the other option"
           ) : (
             <>
-              Request booking {quote ? `· ${pkr(quote.totalPkr)}` : ""} <ArrowRight size={16} />
+              {hidePrices ? "Send pre-booking request" : `Request booking ${quote ? `· ${pkr(quote.totalPkr)}` : ""}`}{" "}
+              <ArrowRight size={16} />
             </>
           )}
         </button>
         {error && <p className="text-sm mt-3 text-center font-medium">{error}</p>}
         <p className="text-[12px] text-ink-soft text-center mt-3 leading-relaxed">
-          No card charged now. We hold your spot as a booking request, you pay by
-          your chosen method, and we confirm — usually the same day.
+          {hidePrices
+            ? "Nothing to pay now. We hold your spot as a pre-booking, share your price and offers on WhatsApp, and confirm once you pay."
+            : "No card charged now. We hold your spot as a booking request, you pay by your chosen method, and we confirm — usually the same day."}
         </p>
       </div>
 
@@ -353,7 +397,31 @@ export default function BookingWidget({
         </div>
 
         <div className="mt-6 space-y-3 border-t border-paper/15 pt-5 text-sm">
-          {quote ? (
+          {hidePrices ? (
+            <div className="space-y-3">
+              <p className="text-paper/80 leading-relaxed">
+                Price on request. Send a pre-booking request and we&apos;ll share your
+                price and any offers on WhatsApp.
+              </p>
+              {productAvail && (
+                <p className="text-paper/70">
+                  {productAvail.available > 0
+                    ? `${productAvail.available} of ${productAvail.total} available for these dates`
+                    : "Fully booked for these dates"}
+                </p>
+              )}
+              {whatsapp && (
+                <a
+                  href={waLink(`Assalam-o-alaikum! I'm interested in a ${product.name} from ${checkIn} to ${checkOut} (${nights} nights).`)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn !bg-paper !text-ink w-full !py-3 text-sm"
+                >
+                  Ask on WhatsApp
+                </a>
+              )}
+            </div>
+          ) : quote ? (
             <>
               {quote.lines.map((l, i) => (
                 <div key={i} className="flex justify-between gap-4">

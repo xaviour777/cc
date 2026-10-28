@@ -8,5 +8,12 @@ Content Colony - Windows par chalane ka tareeqa (port 1002)
    Admin: http://localhost:1002/admin/login
    Email: admin@contentcolony.pk   Password: colony-admin-2025
 
+Purana folder update karna ho (data rakhna ho): files replace karein, phir
+   npm run db:update      (naye tables/rooms add karta hai, purana data nahi mitata)
+
+Prices chhupane/dikhane aur WhatsApp number: Admin -> Settings.
+3 private rooms November 2026 me booked hain: Admin -> Rooms & Beds me "Booked — November 2026" blocks.
+Har guest ka custom price: Admin -> Bookings -> booking kholein -> "Set the agreed price".
+
 Database ".data" folder me khud ban jata hai, PostgreSQL install karne ki zaroorat nahi.
 Database reset karna ho to server band karein, ".data" folder delete karein, phir step 3 dobara.

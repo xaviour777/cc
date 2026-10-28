@@ -26,6 +26,13 @@ export function SiteSettingsForm({ initial }: { initial: Record<string, string |
           <input className="field" value={String(f.whatsappNumber ?? "")} onChange={(e) => set("whatsappNumber", e.target.value)} />
         </div>
         <div>
+          <label className="label">Prices on website</label>
+          <select className="field" value={String(f.hidePrices ?? "no")} onChange={(e) => set("hidePrices", e.target.value)}>
+            <option value="no">Show prices, normal booking</option>
+            <option value="yes">Hide prices, pre-booking request + WhatsApp</option>
+          </select>
+        </div>
+        <div>
           <label className="label">Minimum stay (nights)</label>
           <input type="number" min={1} className="field" value={String(f.minStayNights ?? 3)} onChange={(e) => set("minStayNights", Number(e.target.value))} />
         </div>

@@ -18,7 +18,7 @@ import {
 import { addPayment, confirmPaymentAction, refundPayment } from "@/app/admin/actions";
 import { formatDate, pkr } from "@/lib/utils";
 import { ActionButton, AdminBadge } from "@/components/admin/form-shell";
-import { AssignUnitSelect, BookingOps } from "@/components/admin/booking-actions";
+import { AssignUnitSelect, BookingOps, CustomPriceForm } from "@/components/admin/booking-actions";
 
 export default async function BookingDetailPage({
   params,
@@ -92,6 +92,7 @@ export default async function BookingDetailPage({
           </p>
         </div>
         <div className="flex gap-2 items-center">
+          {b.pricePending && <AdminBadge>Price pending</AdminBadge>}
           {b.minStayOverride && <AdminBadge>Min-stay override</AdminBadge>}
           <AdminBadge tone="dark">{b.status.replace(/_/g, " ")}</AdminBadge>
         </div>
@@ -121,7 +122,7 @@ export default async function BookingDetailPage({
                 </div>
               ))}
               <div className="flex justify-between font-semibold pt-2 border-t border-line">
-                <span>Total</span><span>{pkr(b.totalPkr)}</span>
+                <span>Total</span><span>{b.pricePending ? "Price pending" : pkr(b.totalPkr)}</span>
               </div>
               <div className="flex justify-between text-[13px]">
                 <span className="text-ink-soft">Received (confirmed)</span><span>{pkr(paidConfirmed)}</span>
@@ -137,6 +138,16 @@ export default async function BookingDetailPage({
             )}
             {b.notes && <p className="mt-2 text-[12px] bg-mist rounded-xl px-4 py-3">Notes: {b.notes}</p>}
           </div>
+
+          {["PENDING_PAYMENT", "CONFIRMED"].includes(b.status) && (
+            <CustomPriceForm
+              bookingId={b.id}
+              pricePending={b.pricePending}
+              currentTotal={b.totalPkr}
+              guestPhone={b.guestPhone}
+              reference={b.reference}
+            />
+          )}
 
           {/* Payments */}
           <div className="rounded-2xl border border-line bg-paper p-5">

@@ -9,29 +9,41 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getAccommodationTypes, getStayProducts } from "@/lib/data";
-import { getMinStayNights, getSetting } from "@/lib/stays";
+import { getHidePrices, getMinStayNights, getSetting, getWhatsappNumber } from "@/lib/stays";
 import { pkr } from "@/lib/utils";
 import { IMG } from "@/lib/images";
 import Reveal from "@/components/ui/reveal";
 import BookingWidget from "@/components/booking/booking-widget";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { ratePlans } from "@/db/schema";
+import { beds, ratePlans, rooms } from "@/db/schema";
 
 export const metadata: Metadata = {
   title: "Stay — bunks, private rooms and honest prices",
   description:
-    "Shared bunks from PKR 2,000/night and private rooms from PKR 5,000/night in Johar Town, Lahore. Minimum 3 nights, weekly and monthly packages included.",
+    "Shared bunks and private rooms in Johar Town, Lahore. Check live availability on the calendar and send a booking request. Minimum 3 nights.",
 };
 
 export default async function StayPage() {
-  const [products, types, minStay, discount, plans] = await Promise.all([
+  const [listedProducts, types, minStay, discount, listedPlans, hidePrices, whatsapp, roomRows, bedRows] = await Promise.all([
     getStayProducts(),
     getAccommodationTypes(),
     getMinStayNights(),
     getSetting<number>("residentDiscountPct", 25),
     db.select().from(ratePlans).where(eq(ratePlans.active, true)),
+    getHidePrices(),
+    getWhatsappNumber(),
+    db.select().from(rooms).where(eq(rooms.active, true)),
+    db.select().from(beds).where(eq(beds.active, true)),
   ]);
+  // In "price on request" mode no price ever reaches the page.
+  const products = hidePrices
+    ? listedProducts.map((p) => ({ ...p, nightlyPkr: 0, weeklyPkr: null, monthlyPkr: null }))
+    : listedProducts;
+  const plans = hidePrices ? [] : listedPlans;
+  const sharedRoomIds = new Set(roomRows.filter((r) => r.type === "SHARED_BUNK").map((r) => r.id));
+  const bunkCount = bedRows.filter((b) => sharedRoomIds.has(b.roomId)).length;
+  const privateCount = roomRows.filter((r) => r.type === "PRIVATE_ROOM").length;
 
   return (
     <div className="px-5 md:px-10 py-14 md:py-20">
@@ -44,8 +56,9 @@ export default async function StayPage() {
             <span className="serif-em normal-case">Build all day.</span>
           </h1>
           <p className="lede mt-5">
-            Prices are per night, stays start at {minStay} nights, and longer
-            stays get package pricing automatically — never the raw nightly maths.
+            {hidePrices
+              ? `Stays start at ${minStay} nights. Check live availability below and send a pre-booking request — we share your price and offers on WhatsApp.`
+              : `Prices are per night, stays start at ${minStay} nights, and longer stays get package pricing automatically — never the raw nightly maths.`}
           </p>
           <a href="#book" className="btn btn-primary mt-8">
             Check real availability <ArrowDown size={15} />
@@ -67,7 +80,7 @@ export default async function StayPage() {
                     <div className="flex items-center gap-2 text-ink-soft">
                       {t.key === "SHARED_BUNK" ? <BedDouble size={17} /> : <DoorOpen size={17} />}
                       <span className="text-[12px] tracking-[0.16em] uppercase font-medium">
-                        {t.key === "SHARED_BUNK" ? "Shared living · 8 bunks" : "Private accommodation · 2 rooms"}
+                        {t.key === "SHARED_BUNK" ? `Shared living · ${bunkCount} bunks` : `Private accommodation · ${privateCount} rooms`}
                       </span>
                     </div>
                     <h2 className="font-display font-bold text-2xl md:text-3xl mt-2 tracking-tight">{t.name}</h2>
@@ -79,6 +92,12 @@ export default async function StayPage() {
                         </li>
                       ))}
                     </ul>
+                    {hidePrices ? (
+                    <div className="mt-6 pt-5 border-t border-line">
+                      <p className="font-display font-bold text-xl tracking-tight">Price on request</p>
+                      <p className="text-sm text-ink-soft mt-1">Custom offers on WhatsApp · {minStay}-night minimum</p>
+                    </div>
+                    ) : (
                     <div className="mt-6 pt-5 border-t border-line">
                       <p>
                         <span className="font-display font-extrabold text-3xl tracking-tight">{pkr(p.nightlyPkr)}</span>
@@ -97,6 +116,7 @@ export default async function StayPage() {
                           ))}
                       </div>
                     </div>
+                    )}
                   </div>
                 </article>
               </Reveal>
@@ -109,13 +129,13 @@ export default async function StayPage() {
           <div id="book" className="scroll-mt-28">
             <div className="text-center max-w-xl mx-auto mb-8">
               <p className="kicker text-ink-soft">Book your stay</p>
-              <h2 className="display-md mt-3">Real beds. Real dates. Real price.</h2>
+              <h2 className="display-md mt-3">{hidePrices ? "Real beds. Real dates." : "Real beds. Real dates. Real price."}</h2>
               <p className="text-ink-soft mt-3 text-[15px] leading-relaxed">
                 Availability below is live — a bed is locked to you the moment your
                 request lands, so nobody can double-book it.
               </p>
             </div>
-            <BookingWidget products={products} minStay={minStay} />
+            <BookingWidget products={products} minStay={minStay} hidePrices={hidePrices} whatsapp={whatsapp} />
           </div>
         </Reveal>
 

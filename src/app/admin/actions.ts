@@ -246,6 +246,39 @@ export async function adminCreateBooking(input: {
   return { ok: true, reference: result.reference };
 }
 
+// ---------- Custom price (offer agreed on WhatsApp) ----------
+export async function setCustomPrice(bookingId: number, amountPkr: number, label: string): Promise<R> {
+  const user = await adminUser();
+  if (!user) return fail("Unauthorized");
+  if (!Number.isFinite(amountPkr) || amountPkr <= 0) return fail("Enter the agreed price in PKR");
+  const [b] = await db.select().from(bookings).where(eq(bookings.id, bookingId)).limit(1);
+  if (!b) return fail("Booking not found");
+  const amount = Math.round(amountPkr);
+  const line = { label: label.trim() || "Custom offer", qty: 1, unitPricePkr: amount, subtotalPkr: amount };
+  await db
+    .update(bookings)
+    .set({ totalPkr: amount, priceBreakdown: [line], pricePending: false, updatedAt: new Date() })
+    .where(eq(bookings.id, bookingId));
+  const [pending] = await db
+    .select()
+    .from(payments)
+    .where(and(eq(payments.bookingId, bookingId), eq(payments.status, "PENDING")))
+    .limit(1);
+  if (pending) await db.update(payments).set({ amountPkr: amount }).where(eq(payments.id, pending.id));
+  else if (b.status === "PENDING_PAYMENT")
+    await db.insert(payments).values({ bookingId, kind: "STAY", method: "BANK_TRANSFER", amountPkr: amount, status: "PENDING" });
+  await recordNotification({
+    channel: "EMAIL",
+    to: b.guestEmail,
+    subject: `Your price for ${b.reference}`,
+    body: `Assalam-o-alaikum ${b.guestName}! Your stay ${b.checkIn} → ${b.checkOut} is PKR ${amount.toLocaleString("en-PK")}. Open your booking page to verify your ID and pay.`,
+    entityType: "booking",
+    entityId: b.id,
+  });
+  await logAction(user.id, "booking-custom-price", "booking", bookingId, { amountPkr: amount, label: line.label });
+  return ok;
+}
+
 // ---------- Inventory blocks ----------
 export async function addInventoryBlock(unit: { bedId?: number; roomId?: number }, startDate: string, endDate: string, reason: string): Promise<R> {
   const user = await adminUser();

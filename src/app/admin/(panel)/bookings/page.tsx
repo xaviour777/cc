@@ -72,7 +72,7 @@ export default async function AdminBookingsPage({
                   {formatDate(b.checkIn)} → {formatDate(b.checkOut)}
                 </td>
                 <td className="px-5 py-3.5">{b.nights}{b.minStayOverride ? " *" : ""}</td>
-                <td className="px-5 py-3.5 font-semibold">{pkr(b.totalPkr)}</td>
+                <td className="px-5 py-3.5 font-semibold">{b.pricePending ? <span className="text-ink-soft font-normal">Price pending</span> : pkr(b.totalPkr)}</td>
                 <td className="px-5 py-3.5">
                   <AdminBadge tone={b.status === "CHECKED_IN" || b.status === "CONFIRMED" ? "dark" : "neutral"}>
                     {b.status.replace(/_/g, " ")}

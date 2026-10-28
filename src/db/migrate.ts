@@ -7,7 +7,6 @@ import { db, pool, closeDb } from "./index";
 async function main() {
   const migrationsFolder = "./drizzle";
   if (pool) await migratePg(db, { migrationsFolder });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   else await migratePglite(db as any, { migrationsFolder });
   console.log("Database tables ready.");
   await closeDb();

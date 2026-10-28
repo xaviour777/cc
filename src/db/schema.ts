@@ -220,6 +220,8 @@ export const bookings = pgTable(
       .notNull()
       .default([]),
     totalPkr: integer("total_pkr").notNull(),
+    // true while the stay is a pre-booking request waiting for a custom price
+    pricePending: boolean("price_pending").notNull().default(false),
     currency: text("currency").notNull().default("PKR"),
     status: bookingStatusEnum("status").notNull().default("PENDING_PAYMENT"),
     minStayOverride: boolean("min_stay_override").notNull().default(false),

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { IMG, CREATORS } from "@/lib/images";
 import { getArticles, getPublicEvents, getSocialPosts, getStayProducts } from "@/lib/data";
-import { getMinStayNights, getSetting } from "@/lib/stays";
+import { getHidePrices, getMinStayNights, getSetting } from "@/lib/stays";
 import { pkr } from "@/lib/utils";
 import Reveal from "@/components/ui/reveal";
 import EventCard from "@/components/site/event-card";
@@ -27,13 +27,14 @@ import ReelGrid from "@/components/site/reel-grid";
 import JoinForm from "@/components/forms/join-form";
 
 export default async function HomePage() {
-  const [products, events, articlesList, reels, minStay, discount] = await Promise.all([
+  const [products, events, articlesList, reels, minStay, discount, hidePrices] = await Promise.all([
     getStayProducts(),
     getPublicEvents(),
     getArticles("en", 3),
     getSocialPosts(),
     getMinStayNights(),
     getSetting<number>("residentDiscountPct", 25),
+    getHidePrices(),
   ]);
   const featured = events.filter((e) => e.featured && e.kind === "WORKSHOP");
   const community = events.filter((e) => e.kind !== "WORKSHOP").slice(0, 3);
@@ -191,12 +192,12 @@ export default async function HomePage() {
                     <h3 className="font-display font-bold text-2xl md:text-3xl mt-2 tracking-tight">{p.name}</h3>
                     <p className="text-ink-soft mt-2 leading-relaxed text-[15px]">{p.tagline}</p>
                     <div className="flex flex-wrap gap-2 mt-4">
-                      {p.weeklyPkr && (
+                      {!hidePrices && p.weeklyPkr && (
                         <span className="text-[12px] bg-mist rounded-full px-3 py-1.5">
                           7 nights · {pkr(p.weeklyPkr)}
                         </span>
                       )}
-                      {p.monthlyPkr && (
+                      {!hidePrices && p.monthlyPkr && (
                         <span className="text-[12px] bg-mist rounded-full px-3 py-1.5">
                           30 nights · {pkr(p.monthlyPkr)}
                         </span>
@@ -207,8 +208,14 @@ export default async function HomePage() {
                     </div>
                     <div className="flex items-center justify-between mt-6 pt-5 border-t border-line">
                       <p>
-                        <span className="font-display font-extrabold text-2xl tracking-tight">{pkr(p.nightlyPkr)}</span>
-                        <span className="text-ink-soft text-sm"> / night</span>
+                        {hidePrices ? (
+                          <span className="font-display font-bold text-lg tracking-tight">Price on request</span>
+                        ) : (
+                          <>
+                            <span className="font-display font-extrabold text-2xl tracking-tight">{pkr(p.nightlyPkr)}</span>
+                            <span className="text-ink-soft text-sm"> / night</span>
+                          </>
+                        )}
                       </p>
                       <span className="inline-flex items-center gap-1.5 text-sm font-medium group-hover:gap-2.5 transition-all">
                         Check dates <ArrowRight size={15} />

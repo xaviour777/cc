@@ -5,6 +5,7 @@ import { BadgePercent, BedDouble, CalendarDays, Check, CircleDashed, Wallet } fr
 import { db } from "@/db";
 import { beds, payments, rooms } from "@/db/schema";
 import { getPortal } from "@/lib/actions";
+import { getWhatsappNumber } from "@/lib/stays";
 import { getPublicEvents, getSetting } from "@/lib/data";
 import { cx, formatDate, pkr } from "@/lib/utils";
 import Reveal from "@/components/ui/reveal";
@@ -63,12 +64,13 @@ export default async function BookingPortalPage({
   }
 
   const b = portal.booking;
-  const [paymentRows, bedRow, roomRow, discount, upcomingEvents] = await Promise.all([
+  const [paymentRows, bedRow, roomRow, discount, upcomingEvents, whatsapp] = await Promise.all([
     db.select().from(payments).where(eq(payments.bookingId, b.id)),
     b.bedId ? db.select().from(beds).where(eq(beds.id, b.bedId)).limit(1) : Promise.resolve([]),
     b.roomId ? db.select().from(rooms).where(eq(rooms.id, b.roomId)).limit(1) : Promise.resolve([]),
     getSetting<number>("residentDiscountPct", 25),
     getPublicEvents(),
+    getWhatsappNumber(),
   ]);
   const payment = paymentRows[0];
   const paid = payment?.status === "CONFIRMED";
@@ -174,12 +176,32 @@ export default async function BookingPortalPage({
                       <span className="shrink-0">{pkr(l.subtotalPkr)}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between items-end pt-3 border-t border-line">
-                    <span className="text-ink-soft">Total</span>
-                    <span className="font-display font-extrabold text-2xl tracking-tight">{pkr(b.totalPkr)}</span>
-                  </div>
+                  {b.pricePending ? (
+                    <div className="rounded-2xl bg-mist p-4">
+                      <p className="font-semibold">Price on request</p>
+                      <p className="text-[12.5px] text-ink-soft mt-1.5 leading-relaxed">
+                        Our team will message you on WhatsApp with your price and any
+                        offer. Once agreed, it shows here and you can pay.
+                      </p>
+                      {whatsapp && (
+                        <a
+                          href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Assalam-o-alaikum! My pre-booking reference is ${b.reference} (${b.checkIn} to ${b.checkOut}).`)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-primary !py-2.5 !px-5 text-sm mt-3"
+                        >
+                          Chat on WhatsApp
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-end pt-3 border-t border-line">
+                      <span className="text-ink-soft">Total</span>
+                      <span className="font-display font-extrabold text-2xl tracking-tight">{pkr(b.totalPkr)}</span>
+                    </div>
+                  )}
                 </div>
-                {!paid && payment && b.status !== "CANCELLED" && (
+                {!paid && payment && !b.pricePending && b.status !== "CANCELLED" && (
                   <div className="mt-5 rounded-2xl bg-mist p-4">
                     <p className="flex items-center gap-2 text-sm font-semibold">
                       <Wallet size={15} /> Payment pending — {pkr(payment.amountPkr)}

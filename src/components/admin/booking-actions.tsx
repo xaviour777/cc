@@ -10,6 +10,7 @@ import {
   checkInGuest,
   checkOutGuest,
   setComplianceFlag,
+  setCustomPrice,
 } from "@/app/admin/actions";
 import { ActionButton } from "@/components/admin/form-shell";
 import { addDaysISO, todayISO } from "@/lib/utils";
@@ -239,6 +240,75 @@ export function BookingOps({
           Direct government submission is pending official authorization — track completion here.
         </p>
       </div>
+    </div>
+  );
+}
+
+export function CustomPriceForm({
+  bookingId,
+  pricePending,
+  currentTotal,
+  guestPhone,
+  reference,
+}: {
+  bookingId: number;
+  pricePending: boolean;
+  currentTotal: number;
+  guestPhone: string;
+  reference: string;
+}) {
+  const [amount, setAmount] = useState(pricePending ? "" : String(currentTotal));
+  const [label, setLabel] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const router = useRouter();
+  const phone = guestPhone.replace(/\D/g, "").replace(/^0/, "92");
+
+  return (
+    <div className="rounded-2xl border border-line bg-paper p-5">
+      <p className="font-semibold text-sm">
+        {pricePending ? "Set the agreed price" : "Change price (custom offer)"}
+      </p>
+      <p className="text-[12px] text-ink-soft mt-1">
+        Agree the price with the guest on WhatsApp, then save it here. The guest sees it on
+        their booking page and can pay.
+      </p>
+      <a
+        href={`https://wa.me/${phone}?text=${encodeURIComponent(`Assalam-o-alaikum! About your Content Colony booking ${reference}:`)}`}
+        target="_blank"
+        rel="noreferrer"
+        className="btn btn-outline !py-2 !px-4 text-sm mt-3"
+      >
+        Chat with guest on WhatsApp
+      </a>
+      <div className="grid sm:grid-cols-2 gap-3 mt-3">
+        <div>
+          <label className="label">Total price (PKR)</label>
+          <input type="number" min={1} className="field" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 90000" />
+        </div>
+        <div>
+          <label className="label">Label (optional)</label>
+          <input className="field" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. November special offer" />
+        </div>
+      </div>
+      <button
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setMsg(null);
+          try {
+            const res = await setCustomPrice(bookingId, Number(amount), label);
+            setMsg(res.ok ? "Price saved" : res.error ?? "Failed");
+            if (res.ok) router.refresh();
+          } finally {
+            setBusy(false);
+          }
+        }}
+        className="btn btn-primary !py-2.5 !px-6 text-sm mt-3"
+      >
+        {busy ? <Loader2 size={14} className="animate-spin" /> : null} Save price
+      </button>
+      {msg && <p className="text-sm mt-2">{msg}</p>}
     </div>
   );
 }

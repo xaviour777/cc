@@ -105,7 +105,7 @@ async function main() {
         "All community spaces included",
         "Free meetups + resident workshop discounts",
       ],
-      capacityLabel: "2 rooms in the colony · up to 2 occupants each",
+      capacityLabel: "3 rooms in the colony · up to 2 occupants each",
       sortOrder: 1,
     },
   ];
@@ -143,6 +143,7 @@ async function main() {
     await db.insert(rooms).values([
       { propertyId, name: "Private Room 1", type: "PRIVATE_ROOM", maxOccupants: 2 },
       { propertyId, name: "Private Room 2", type: "PRIVATE_ROOM", maxOccupants: 2 },
+      { propertyId, name: "Private Room 3", type: "PRIVATE_ROOM", maxOccupants: 2 },
     ]);
     const labels = [
       { roomId: hive1.id, labels: ["H1-A", "H1-B", "H1-C", "H1-D"] },
@@ -378,7 +379,7 @@ async function main() {
           "",
           "## A home that behaves like a community",
           "",
-          "Content Colony is built around a feeling, not a floor plan. Yes, there are eight bunks, two private rooms, a coworking lounge and a studio. But the real product is the dinner table on Fridays, the 2 AM edit session with someone you met that morning, the movie night where the projector is loud and the commentary is louder.",
+          "Content Colony is built around a feeling, not a floor plan. Yes, there are eight bunks, three private rooms, a coworking lounge and a studio. But the real product is the dinner table on Fridays, the 2 AM edit session with someone you met that morning, the movie night where the projector is loud and the commentary is louder.",
           "",
           "> Come as a stranger. Create as a friend.",
           "",
