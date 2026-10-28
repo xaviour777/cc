@@ -10,6 +10,12 @@ import { mkdirSync } from "node:fs";
 const databaseUrl = process.env.DATABASE_URL ?? "pglite";
 const usePostgres = /^postgres(ql)?:\/\//.test(databaseUrl);
 
+if (!usePostgres && process.env.VERCEL) {
+  throw new Error(
+    "DATABASE_URL must be your Supabase connection string (starting with postgresql://) in Vercel → Settings → Environment Variables."
+  );
+}
+
 const globalForDb = globalThis as typeof globalThis & {
   __arenaNextJsPostgresqlPool?: Pool;
   __contentColonyPglite?: PGlite;

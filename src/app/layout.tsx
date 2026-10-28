@@ -15,6 +15,10 @@ const fontVars = {
   "--font-urdu": '"Noto Nastaliq Urdu"',
 } as React.CSSProperties;
 
+// Every page reads live data (settings, rooms, prices), so render on request
+// instead of at build time.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL ?? "http://localhost:1002"),
   title: {
