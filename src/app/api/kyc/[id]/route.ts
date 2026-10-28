@@ -1,9 +1,9 @@
-import fs from "fs/promises";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { kycDocuments } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
+import { readKycFile } from "@/lib/kyc-storage";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
@@ -14,7 +14,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const [doc] = await db.select().from(kycDocuments).where(eq(kycDocuments.id, id)).limit(1);
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
   try {
-    const buf = await fs.readFile(doc.filePath);
+    const buf = await readKycFile(doc.filePath);
     return new NextResponse(new Uint8Array(buf), {
       headers: {
         "Content-Type": doc.mime,

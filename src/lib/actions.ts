@@ -1,7 +1,5 @@
 "use server";
 
-import fs from "fs/promises";
-import path from "path";
 import crypto from "crypto";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -32,6 +30,7 @@ import {
 } from "@/lib/stays";
 import { queueLeadSync, recordNotification } from "@/lib/ghl";
 import { STUDIO_SLOTS } from "@/lib/studio";
+import { saveKycFile } from "@/lib/kyc-storage";
 import { isISODate, maskIdNumber, nightsBetween, todayISO } from "@/lib/utils";
 
 // ---------- Availability + quotes for the booking widget ----------
@@ -391,8 +390,6 @@ export async function getPortal(reference: string, email: string) {
   };
 }
 
-const KYC_DIR = path.join(process.cwd(), "storage", "kyc");
-
 export async function uploadKyc(formData: FormData) {
   const reference = String(formData.get("reference") ?? "");
   const email = String(formData.get("email") ?? "");
@@ -409,11 +406,9 @@ export async function uploadKyc(formData: FormData) {
   if (!["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type))
     return { ok: false as const, error: "Upload a JPG, PNG, WEBP or PDF." };
 
-  await fs.mkdir(KYC_DIR, { recursive: true });
   const safeName = `${booking.id}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
   const ext = file.type === "application/pdf" ? "pdf" : file.type.split("/")[1];
-  const filePath = path.join(KYC_DIR, `${safeName}.${ext}`);
-  await fs.writeFile(filePath, Buffer.from(await file.arrayBuffer()));
+  const filePath = await saveKycFile(`${safeName}.${ext}`, file.type, Buffer.from(await file.arrayBuffer()));
 
   await db.insert(kycDocuments).values({
     bookingId: booking.id,
