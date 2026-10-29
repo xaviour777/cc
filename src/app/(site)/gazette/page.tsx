@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import EssayReader from "@/components/gazette/essay-reader";
 import CohortForm from "@/components/gazette/cohort-form";
 
@@ -17,6 +18,9 @@ const IMG = {
   color:
     "https://lh3.googleusercontent.com/aida-public/AB6AXuA3YJnx3qtKmfT8Ja3vkG8MFrA-HZd7MLAvyDUr2Eps4OTz-rZ4WG3vXNQatdhyAvHUzG3kmpV2cnVe8lxvN2hQo-QUstNpDjdyKcol2hKHkeLE5K-cX3CtftHYjDiunS63uU5XGYlsDSkgAM4jngOjpV587-YonjyF52F3hldtyzAvmvWR6ql1VPQgznN1zeJcPAk25tZtiuJFZIDgVDO3vzYDQSeO6DcxZT3gjIGWlwQqtM0H2iIo5A",
 };
+
+const SILENCE_IMG =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuBdNJea3W5zbeIE0G0IEPSjN08ouC3RSSt7U0grTGntin5zTlySZKRuQFkzifaDRmLxyK9dkAPSJYOLcc5zGhY4lO4gzONMIT_iHzTEphR4Gu73zXsSdSHvEhLLjMTcuXIuenyuMkYe4Dk5DHxh5WuPaLXoeESWnv_BWgHieK0DvMlsRnm9ppxP-Au5pUzOLkvQWSW33eVakgMIuWWCQe89BkpUfx8UV4J1fEh1MOXSNUaqs9OT922Lqw";
 
 const PLATES = [
   { img: IMG.sound, en: "Sound Suite A", ur: "صوتی اسٹوڈیو", alt: "An editor working late at night on a laptop timeline" },
@@ -290,6 +294,40 @@ export default function GazettePage() {
               </div>
             ))}
           </div>
+        </section>
+
+        {/* More dispatches */}
+        <section className="mb-16">
+          <div className="flex flex-wrap justify-between items-baseline gap-2 pb-2 mb-6 border-b border-ink/20">
+            <p className="gz-label">More dispatches // مزید مراسلے</p>
+          </div>
+          <Link
+            href="/gazette/architecture-of-silence"
+            className="group grid md:grid-cols-[2fr_3fr] border border-line hover:border-ink transition-colors"
+          >
+            <div className="relative aspect-[16/10] md:aspect-auto bg-ink overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={SILENCE_IMG}
+                alt="A sound engineer at an analog mixing console"
+                loading="lazy"
+                className="w-full h-full object-cover grayscale contrast-125 group-hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+            <div className="p-6 md:p-8 space-y-3">
+              <p className="flex flex-wrap items-center gap-2">
+                <span className="gz-label px-2 py-0.5 bg-ink text-paper">Dispatch 03</span>
+                <span className="gz-label text-ink-soft">Cultural acoustics &amp; cinema sound · 14 min read</span>
+              </p>
+              <h3 className="font-news text-[26px] leading-[34px] md:text-[32px] md:leading-[40px] tracking-[-0.02em]">
+                The Architecture of Silence: Why South Asian Cinema’s Greatest Crisis is Acoustic Precarity
+              </h3>
+              <p lang="ur" dir="rtl" className="text-[16px] text-ink-soft">
+                خاموشی کی تلاش: لاہور کے شور میں سچی آواز کی گرفت
+              </p>
+              <span className="gz-label u-link inline-block">Read the dispatch →</span>
+            </div>
+          </Link>
         </section>
 
         {/* Cohort application */}

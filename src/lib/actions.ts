@@ -391,6 +391,45 @@ export async function applyForCohort(input: {
   return { ok: true as const };
 }
 
+// ---------- Gazette soundstage residency ----------
+export async function applyForResidency(input: {
+  name: string;
+  email: string;
+  whatsapp: string;
+  discipline: string;
+  portfolio?: string;
+  proposal?: string;
+  honeypot?: string;
+}) {
+  if (input.honeypot) return { ok: false as const, error: "Something went wrong." };
+  if (input.name.trim().length < 2 || !/^\S+@\S+\.\S+$/.test(input.email) || input.whatsapp.trim().length < 7)
+    return { ok: false as const, error: "Add your name, a valid email and your WhatsApp number." };
+  await queueLeadSync({
+    entityType: "contact",
+    entityId: Date.now() % 2_000_000_000,
+    name: input.name,
+    email: input.email,
+    phone: input.whatsapp,
+    tags: ["content-colony", "soundstage-residency"],
+    source: "Content Colony — Soundstage residency application",
+    notes: [
+      `Discipline: ${input.discipline}`,
+      input.portfolio && `Portfolio: ${input.portfolio}`,
+      input.proposal && `Proposal: ${input.proposal}`,
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, 500),
+  });
+  await recordNotification({
+    channel: "EMAIL",
+    to: input.email,
+    subject: "Your Soundstage residency application — Content Colony",
+    body: `Thanks ${input.name}, we received your application (${input.discipline}). We'll contact you on WhatsApp within 48 hours.`,
+  });
+  return { ok: true as const };
+}
+
 // ---------- Booking portal ----------
 export async function getPortal(reference: string, email: string) {
   const booking = await verifyResidentReference(reference, email);
