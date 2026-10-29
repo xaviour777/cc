@@ -29,6 +29,8 @@
   --font-display: var(--font-archivo), var(--font-inter), ui-sans-serif, sans-serif;
   --font-serif: var(--font-serif-accent), Georgia, serif;
   --font-urdu: var(--font-urdu), "Noto Nastaliq Urdu", serif;
+  --font-news: "Newsreader", Georgia, serif;
+  --font-grotesk: "Space Grotesk", ui-sans-serif, sans-serif;
 }
 
 html {
@@ -269,3 +271,15 @@ body {
   .no-print { display: none !important; }
   body { background: #fff; }
 }
+
+/* ---------- Colony Gazette (editorial broadsheet) ---------- */
+.font-news { font-family: var(--font-news); }
+.gz-label {
+  font-family: var(--font-grotesk);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[lang="ur"] .gz-label { font-family: var(--font-urdu); letter-spacing: 0; line-height: 2; }

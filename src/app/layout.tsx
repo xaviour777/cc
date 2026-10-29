@@ -6,7 +6,7 @@ import "./globals.css";
 // Fonts load in the browser from Google Fonts, so the dev server never has
 // to download them (that download fails on some networks).
 const fontsHref =
-  "https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Inter:wght@100..900&family=Instrument+Serif:ital@0;1&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap";
+  "https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Inter:wght@100..900&family=Instrument+Serif:ital@0;1&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Space+Grotesk:wght@500;600&display=swap";
 
 const fontVars = {
   "--font-inter": '"Inter"',

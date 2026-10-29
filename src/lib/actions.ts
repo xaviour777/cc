@@ -360,6 +360,37 @@ export async function joinColony(input: { name: string; email: string; interest:
   return { ok: true as const };
 }
 
+// ---------- Gazette cohort application ----------
+export async function applyForCohort(input: {
+  name: string;
+  email: string;
+  whatsapp?: string;
+  craft: string;
+  subscribe: boolean;
+  honeypot?: string;
+}) {
+  if (input.honeypot) return { ok: false as const, error: "Something went wrong." };
+  if (input.name.trim().length < 2 || !/^\S+@\S+\.\S+$/.test(input.email))
+    return { ok: false as const, error: "Add your name and a valid email." };
+  await queueLeadSync({
+    entityType: "contact",
+    entityId: Date.now() % 2_000_000_000,
+    name: input.name,
+    email: input.email,
+    phone: input.whatsapp || undefined,
+    tags: ["content-colony", "gazette-cohort", ...(input.subscribe ? ["gazette-subscriber"] : [])],
+    source: "Content Colony — Colony Gazette cohort application",
+    notes: `Craft: ${input.craft}${input.subscribe ? " · wants the Gazette" : ""}`,
+  });
+  await recordNotification({
+    channel: "EMAIL",
+    to: input.email,
+    subject: "Your Cohort application — Content Colony",
+    body: `Thanks ${input.name}, we received your application (${input.craft}). We'll reach out on WhatsApp or email soon.`,
+  });
+  return { ok: true as const };
+}
+
 // ---------- Booking portal ----------
 export async function getPortal(reference: string, email: string) {
   const booking = await verifyResidentReference(reference, email);
