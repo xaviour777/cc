@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSetting } from "@/lib/stays";
 import {
   ColonyMark,
+  ColonyWordmark,
   TikTokIcon,
   WhatsAppIcon,
   InstagramIcon,
@@ -36,10 +37,8 @@ export default async function Footer() {
         <div className="grid md:grid-cols-12 gap-10 md:gap-6">
           <div className="md:col-span-5">
             <div className="flex items-center gap-3">
-              <ColonyMark className="w-9 h-9" />
-              <span className="font-display font-extrabold tracking-[-0.02em] text-lg leading-none">
-                CONTENT<br />COLONY
-              </span>
+              <ColonyMark className="w-12 h-11" />
+              <ColonyWordmark className="h-[30px]" />
             </div>
             <p className="mt-5 text-ink-soft max-w-sm leading-relaxed text-[15px]">
               A creative home in Johar Town, Lahore — co-living, coworking,

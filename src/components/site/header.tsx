@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X, Moon, Sun, ArrowUpRight } from "lucide-react";
 import { cx } from "@/lib/utils";
-import { ColonyMark } from "@/components/ui/icons";
+import { ColonyMark, ColonyWordmark } from "@/components/ui/icons";
 
 const NAV = [
   { href: "/stay", label: "Stay" },
@@ -55,12 +55,8 @@ export default function Header() {
       >
         <div className="mx-auto max-w-[1440px] px-5 md:px-10 h-[68px] flex items-center justify-between gap-6">
           <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-            <ColonyMark className="w-8 h-8 transition-transform duration-500 group-hover:rotate-90" />
-            <span className="font-display font-extrabold tracking-[-0.02em] text-[17px] leading-none">
-              CONTENT
-              <br />
-              COLONY
-            </span>
+            <ColonyMark className="w-11 h-10" />
+            <ColonyWordmark className="h-[26px]" />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-7">
@@ -113,10 +109,8 @@ export default function Header() {
       >
         <div className="flex items-center justify-between px-5 h-[68px] border-b border-line">
           <div className="flex items-center gap-2.5">
-            <ColonyMark className="w-8 h-8" />
-            <span className="font-display font-extrabold text-[17px] leading-none">
-              CONTENT<br />COLONY
-            </span>
+            <ColonyMark className="w-11 h-10" />
+            <ColonyWordmark className="h-[26px]" />
           </div>
           <button
             onClick={() => setOpen(false)}

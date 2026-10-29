@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { CSSProperties, SVGProps } from "react";
 
 export function TikTokIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -67,14 +67,35 @@ export function LinkedinIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// Brand artwork lives in /public/brand as alpha masks, so it takes the
+// current text colour and works in light and dark mode.
+function maskStyle(src: string): CSSProperties {
+  const url = `url(${src})`;
+  return {
+    maskImage: url,
+    WebkitMaskImage: url,
+    maskSize: "contain",
+    WebkitMaskSize: "contain",
+    maskRepeat: "no-repeat",
+    WebkitMaskRepeat: "no-repeat",
+    maskPosition: "center",
+    WebkitMaskPosition: "center",
+  };
+}
+
 export function ColonyMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" className={className} aria-hidden>
-      <rect x="2" y="2" width="28" height="28" rx="8" stroke="currentColor" strokeWidth="2.4" />
-      <circle cx="11.5" cy="11.5" r="3.4" fill="currentColor" />
-      <circle cx="20.5" cy="11.5" r="3.4" fill="currentColor" opacity="0.55" />
-      <circle cx="11.5" cy="20.5" r="3.4" fill="currentColor" opacity="0.55" />
-      <circle cx="20.5" cy="20.5" r="3.4" fill="currentColor" />
-    </svg>
+    <span aria-hidden className={`inline-block shrink-0 bg-current ${className ?? ""}`} style={maskStyle("/brand/mark.png")} />
+  );
+}
+
+export function ColonyWordmark({ className }: { className?: string }) {
+  return (
+    <span
+      role="img"
+      aria-label="Content Colony"
+      className={`inline-block shrink-0 bg-current aspect-[590/171] ${className ?? ""}`}
+      style={maskStyle("/brand/wordmark.png")}
+    />
   );
 }
