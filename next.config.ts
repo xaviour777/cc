@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // The Gazette pages moved into the Journal.
+  async redirects() {
+    return [
+      { source: "/gazette", destination: "/journal/sovereign-freelancer", permanent: true },
+      { source: "/gazette/:slug", destination: "/journal/:slug", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -265,7 +265,7 @@ export default function ArchitectureOfSilencePage() {
         <section className="border border-line mb-8">
           <div className="px-4 py-2 bg-mist flex flex-wrap items-center justify-between gap-2">
             <p className="gz-label">
-              <Link href="/gazette" className="u-link">
+              <Link href="/journal" className="u-link">
                 The Colony Gazette
               </Link>{" "}
               <span className="opacity-40">•</span> Vol. IV — Iss. 16 <span className="opacity-40">•</span> Johar Town,
@@ -487,8 +487,8 @@ export default function ArchitectureOfSilencePage() {
               <p className="gz-label text-ink mb-1">Postal stamp</p>
               <p>The Colony Gazette, Johar Town, Lahore</p>
             </div>
-            <Link href="/gazette" className="gz-label text-ink u-link self-start">
-              ← Back to the Gazette
+            <Link href="/journal" className="gz-label text-ink u-link self-start">
+              ← Back to the Journal
             </Link>
           </div>
         </section>

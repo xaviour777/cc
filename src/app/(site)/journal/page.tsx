@@ -4,6 +4,7 @@ import { getArticles, getCategories } from "@/lib/data";
 import { cx } from "@/lib/utils";
 import Reveal from "@/components/ui/reveal";
 import ArticleCard from "@/components/site/article-card";
+import GazetteFeatures from "@/components/journal/gazette-features";
 
 export const metadata: Metadata = {
   title: "Journal — daily articles & creator stories",
@@ -82,6 +83,8 @@ export default async function JournalPage({
             ))}
           </div>
         </Reveal>
+
+        {!cat && <GazetteFeatures />}
 
         {list.length === 0 && (
           <p className="mt-16 text-ink-soft">Nothing here yet — check back tomorrow.</p>

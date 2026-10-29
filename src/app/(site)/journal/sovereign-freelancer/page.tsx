@@ -4,7 +4,7 @@ import EssayReader from "@/components/gazette/essay-reader";
 import CohortForm from "@/components/gazette/cohort-form";
 
 export const metadata: Metadata = {
-  title: "The Colony Gazette — dispatches from Johar Town",
+  title: "The Sovereign Freelancer — The Colony Gazette",
   description:
     "A bilingual broadsheet for independent storytellers, colorists and technical directors at Content Colony, Lahore.",
 };
@@ -302,7 +302,7 @@ export default function GazettePage() {
             <p className="gz-label">More dispatches // مزید مراسلے</p>
           </div>
           <Link
-            href="/gazette/architecture-of-silence"
+            href="/journal/architecture-of-silence"
             className="group grid md:grid-cols-[2fr_3fr] border border-line hover:border-ink transition-colors"
           >
             <div className="relative aspect-[16/10] md:aspect-auto bg-ink overflow-hidden">

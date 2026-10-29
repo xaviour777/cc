@@ -86,7 +86,6 @@ export default async function Footer() {
                 ["Events", "/events"],
                 ["Community", "/community"],
                 ["Journal", "/journal"],
-                ["Colony Gazette", "/gazette"],
                 ["Neighborhood", "/neighborhood"],
                 ["Host an Event", "/host-event"],
               ].map(([label, href]) => (
