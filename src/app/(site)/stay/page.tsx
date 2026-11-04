@@ -14,6 +14,7 @@ import { pkr } from "@/lib/utils";
 import { IMG } from "@/lib/images";
 import Reveal from "@/components/ui/reveal";
 import BookingWidget from "@/components/booking/booking-widget";
+import { getMember } from "@/lib/members";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { beds, ratePlans, rooms } from "@/db/schema";
@@ -25,6 +26,7 @@ export const metadata: Metadata = {
 };
 
 export default async function StayPage() {
+  const member = await getMember();
   const [listedProducts, types, minStay, discount, listedPlans, hidePrices, whatsapp, roomRows, bedRows] = await Promise.all([
     getStayProducts(),
     getAccommodationTypes(),
@@ -135,7 +137,13 @@ export default async function StayPage() {
                 request lands, so nobody can double-book it.
               </p>
             </div>
-            <BookingWidget products={products} minStay={minStay} hidePrices={hidePrices} whatsapp={whatsapp} />
+            <BookingWidget
+              products={products}
+              minStay={minStay}
+              hidePrices={hidePrices}
+              whatsapp={whatsapp}
+              member={member ? { name: member.name, email: member.email, phone: member.phone ?? "" } : null}
+            />
           </div>
         </Reveal>
 

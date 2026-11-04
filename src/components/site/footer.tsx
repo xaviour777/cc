@@ -19,7 +19,7 @@ export default async function Footer() {
     getSetting<string>("facebook", ""),
     getSetting<string>("linkedin", ""),
     getSetting<string>("whatsappNumber", ""),
-    getSetting<string>("contactEmail", "hello@contentcolony.pk"),
+    getSetting<string>("contactEmail", "hello@contentcolony.live"),
     getSetting<string>("legalNotice", ""),
   ]);
 

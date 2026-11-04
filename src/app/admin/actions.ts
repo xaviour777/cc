@@ -8,6 +8,7 @@ import {
   articles,
   bookings,
   checkInOuts,
+  coupons,
   eventProposals,
   eventRegistrations,
   events,
@@ -35,6 +36,7 @@ import {
 } from "@/lib/auth";
 import { createBooking, getPlansFor, quoteStay, setSetting } from "@/lib/stays";
 import { queueLeadSync, recordNotification, retryPendingSyncs } from "@/lib/ghl";
+import { createAccountLink, ensureMemberAccount, hasPassword, siteUrl } from "@/lib/members";
 import { genReference, isISODate, slugify, todayISO, nightsBetween } from "@/lib/utils";
 
 type R = { ok: boolean; error?: string };
@@ -126,6 +128,16 @@ export async function confirmPaymentAction(paymentId: number): Promise<R> {
   if (p.eventRegistrationId) {
     await db.update(eventRegistrations).set({ status: "CONFIRMED" }).where(eq(eventRegistrations.id, p.eventRegistrationId));
   }
+  // A verified payment makes the guest a permanent member.
+  let who: { email: string; name: string; phone: string | null } | null = null;
+  if (p.bookingId) {
+    const [b] = await db.select().from(bookings).where(eq(bookings.id, p.bookingId)).limit(1);
+    if (b) who = { email: b.guestEmail, name: b.guestName, phone: b.guestPhone };
+  } else if (p.eventRegistrationId) {
+    const [r] = await db.select().from(eventRegistrations).where(eq(eventRegistrations.id, p.eventRegistrationId)).limit(1);
+    if (r) who = { email: r.email, name: r.name, phone: null };
+  }
+  if (who) await welcomeMember(who);
   await logAction(user.id, "payment-confirm", "payment", paymentId, { bookingId: p.bookingId });
   return ok;
 }
@@ -593,4 +605,64 @@ export async function markGhlSkipped(id: number): Promise<R> {
   if (!user) return fail("Unauthorized");
   await db.update(ghlSyncs).set({ status: "SKIPPED", updatedAt: new Date() }).where(eq(ghlSyncs.id, id));
   return ok;
+}
+
+// ---------- Coupons ----------
+export async function createCoupon(fd: FormData): Promise<R> {
+  const user = await adminUser();
+  if (!user) return fail("Unauthorized");
+  const code = String(fd.get("code") ?? "").trim().toUpperCase().replace(/\s+/g, "");
+  const kind = String(fd.get("kind") ?? "PERCENT") === "FIXED" ? "FIXED" : "PERCENT";
+  const value = Math.round(Number(fd.get("value") ?? 0));
+  const appliesTo = ["STAY", "EVENT", "ALL"].includes(String(fd.get("appliesTo"))) ? String(fd.get("appliesTo")) : "STAY";
+  const minNights = Number(fd.get("minNights") ?? 0) || null;
+  const maxUses = Number(fd.get("maxUses") ?? 0) || null;
+  const expiresOn = String(fd.get("expiresOn") ?? "").trim() || null;
+  const note = String(fd.get("note") ?? "").trim() || null;
+  if (!/^[A-Z0-9_-]{3,30}$/.test(code)) return fail("Code: 3–30 letters/numbers, no spaces.");
+  if (!(value > 0)) return fail("Enter a discount value.");
+  if (kind === "PERCENT" && value > 100) return fail("Percent can't be more than 100.");
+  if (expiresOn && !isISODate(expiresOn)) return fail("Choose a valid expiry date.");
+  const exists = await db.select({ id: coupons.id }).from(coupons).where(eq(coupons.code, code)).limit(1);
+  if (exists.length) return fail("A coupon with this code already exists.");
+  await db.insert(coupons).values({ code, kind, value, appliesTo, minNights, maxUses, expiresOn, note });
+  await logAction(user.id, "coupon-create", "coupon", code);
+  return ok;
+}
+
+export async function setCouponActive(id: number, active: boolean): Promise<R> {
+  const user = await adminUser();
+  if (!user) return fail("Unauthorized");
+  await db.update(coupons).set({ active }).where(eq(coupons.id, id));
+  await logAction(user.id, active ? "coupon-enable" : "coupon-disable", "coupon", id);
+  return ok;
+}
+
+// ---------- Members ----------
+async function welcomeMember(who: { email: string; name: string; phone: string | null }) {
+  const { user: member, isNew } = await ensureMemberAccount(who);
+  if (member.role !== "USER" || (!isNew && hasPassword(member.passwordHash))) return;
+  const link = await createAccountLink(member.id);
+  await recordNotification({
+    channel: "EMAIL",
+    to: member.email,
+    subject: "Welcome to the Colony — your member account",
+    body: `Assalam-o-alaikum ${member.name}!\n\nYour payment is verified and you're now a Content Colony member. Set your password here (link valid for 7 days):\n${link}\n\nAfter that, sign in at ${siteUrl()}/account to see your bookings and book future stays and events.\n\nYour people are here.`,
+    entityType: "user",
+    entityId: member.id,
+    copyTeam: false,
+  });
+}
+
+/** Creates the member account for a booking if needed and returns a fresh set-password link. */
+export async function memberLinkForBooking(bookingId: number): Promise<R & { url?: string; hasPassword?: boolean }> {
+  const user = await adminUser();
+  if (!user) return fail("Unauthorized");
+  const [b] = await db.select().from(bookings).where(eq(bookings.id, bookingId)).limit(1);
+  if (!b) return fail("Booking not found");
+  const { user: member } = await ensureMemberAccount({ email: b.guestEmail, name: b.guestName, phone: b.guestPhone });
+  if (member.role !== "USER") return fail("This email belongs to an admin account.");
+  const url = await createAccountLink(member.id);
+  await logAction(user.id, "member-link", "user", member.id);
+  return { ok: true, url, hasPassword: hasPassword(member.passwordHash) };
 }

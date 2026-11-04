@@ -18,6 +18,8 @@ import {
   LogOut,
   Settings,
   SwitchCamera,
+  TicketPercent,
+  UserRound,
   Users,
   Wallet,
 } from "lucide-react";
@@ -32,6 +34,8 @@ const NAV = [
   { href: "/admin/rooms", label: "Rooms & Beds", Icon: SwitchCamera },
   { href: "/admin/checkin", label: "Check-In / Out", Icon: Handshake },
   { href: "/admin/payments", label: "Payments", Icon: Wallet },
+  { href: "/admin/coupons", label: "Coupons", Icon: TicketPercent },
+  { href: "/admin/members", label: "Members", Icon: UserRound },
   { href: "/admin/kyc", label: "KYC & Agreements", Icon: FileCheck2 },
   { href: "/admin/events", label: "Events", Icon: CalendarDays },
   { href: "/admin/proposals", label: "Event Requests", Icon: Inbox },

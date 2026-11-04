@@ -9,8 +9,10 @@ import {
   inventoryBlocks,
   payments,
   siteSettings,
+  coupons,
   type RatePlan,
 } from "@/db/schema";
+import { evaluateCoupon } from "@/lib/coupons";
 import { addDaysISO, genReference, isISODate, nightsBetween, todayISO } from "@/lib/utils";
 
 export type QuoteLine = {
@@ -307,6 +309,7 @@ export type BookingInput = {
   source?: string;
   utm?: Record<string, string>;
   adminOverride?: { reason: string; byUserId: number };
+  couponCode?: string;
 };
 
 export type BookingResult =
@@ -355,8 +358,22 @@ export async function createBooking(input: BookingInput): Promise<BookingResult>
   const quote = quoteStay(plans, nights, input.adminOverride ? 1 : minStay);
   if (!quote.ok) return { ok: false, error: quote.error, minStay: nights < minStay };
   const pricePending = !input.adminOverride && (await getHidePrices());
-  const lines = pricePending ? [] : quote.lines;
-  const totalPkr = pricePending ? 0 : quote.totalPkr;
+  let lines = pricePending ? [] : quote.lines;
+  let totalPkr = pricePending ? 0 : quote.totalPkr;
+  let couponCode: string | null = null;
+  let discountPkr = 0;
+  let couponId: number | null = null;
+  if (input.couponCode?.trim()) {
+    const c = await evaluateCoupon(input.couponCode, pricePending ? 0 : quote.totalPkr, "STAY", nights);
+    if (!c.ok) return { ok: false, error: c.error };
+    couponCode = c.coupon.code;
+    couponId = c.coupon.id;
+    if (!pricePending && c.discountPkr > 0) {
+      discountPkr = c.discountPkr;
+      lines = [...lines, { label: c.label, qty: 1, unitPricePkr: -discountPkr, subtotalPkr: -discountPkr }];
+      totalPkr -= discountPkr;
+    }
+  }
 
   const avail = await getAvailability(checkIn, checkOut);
   return db.transaction(async (tx) => {
@@ -418,6 +435,8 @@ export async function createBooking(input: BookingInput): Promise<BookingResult>
         priceBreakdown: lines,
         totalPkr,
         pricePending,
+        couponCode,
+        discountPkr,
         status: "PENDING_PAYMENT",
         minStayOverride: Boolean(input.adminOverride),
         minStayOverrideReason: input.adminOverride?.reason ?? null,
@@ -425,6 +444,12 @@ export async function createBooking(input: BookingInput): Promise<BookingResult>
         utm: input.utm ?? null,
       })
       .returning({ id: bookings.id });
+
+    if (couponId != null)
+      await tx
+        .update(coupons)
+        .set({ usedCount: sql`${coupons.usedCount} + 1` })
+        .where(eq(coupons.id, couponId));
 
     await tx.insert(payments).values({
       bookingId: inserted[0].id,

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function ContactPage() {
   const [email, wa, ig, tt, yt, fb, li] = await Promise.all([
-    getSetting<string>("contactEmail", "hello@contentcolony.pk"),
+    getSetting<string>("contactEmail", "hello@contentcolony.live"),
     getSetting<string>("whatsappNumber", ""),
     getSetting<string>("instagram", ""),
     getSetting<string>("tiktok", ""),

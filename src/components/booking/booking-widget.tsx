@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import {
   checkStayAvailability,
+  previewStayCoupon,
   submitBooking,
 } from "@/lib/actions";
 import { addDaysISO, cx, nightsBetween, pkr, todayISO } from "@/lib/utils";
@@ -41,20 +42,26 @@ export default function BookingWidget({
   minStay,
   hidePrices = false,
   whatsapp = "",
+  member = null,
 }: {
   products: StayProduct[];
   minStay: number;
   hidePrices?: boolean;
   whatsapp?: string;
+  member?: { name: string; email: string; phone: string } | null;
 }) {
   const [typeKey, setTypeKey] = useState<"SHARED_BUNK" | "PRIVATE_ROOM">("SHARED_BUNK");
   const [checkIn, setCheckIn] = useState(() => addDaysISO(todayISO(), 1));
   const [checkOut, setCheckOut] = useState(() => addDaysISO(todayISO(), 4));
   const [guests, setGuests] = useState(1);
   const [method, setMethod] = useState<"BANK_TRANSFER" | "RAAST" | "CARD_LINK" | "CASH_ON_ARRIVAL">("BANK_TRANSFER");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(member?.name ?? "");
+  const [email, setEmail] = useState(member?.email ?? "");
+  const [phone, setPhone] = useState(member?.phone ?? "");
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState<{ code: string; label: string; discountPkr: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Extract<Awaited<ReturnType<typeof submitBooking>>, { ok: true }> | null>(null);
@@ -82,6 +89,30 @@ export default function BookingWidget({
     const t = setTimeout(refresh, 250);
     return () => clearTimeout(t);
   }, [refresh]);
+
+  const applyCoupon = useCallback(
+    async (code: string) => {
+      if (!code.trim()) return;
+      setCouponBusy(true);
+      setCouponError(null);
+      try {
+        const res = await previewStayCoupon({ code, accommodationKey: typeKey, checkIn, checkOut });
+        if (res.ok) setCoupon({ code: res.code, label: res.label, discountPkr: res.discountPkr });
+        else {
+          setCoupon(null);
+          setCouponError(res.error);
+        }
+      } finally {
+        setCouponBusy(false);
+      }
+    },
+    [typeKey, checkIn, checkOut]
+  );
+
+  useEffect(() => {
+    if (coupon) applyCoupon(coupon.code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typeKey, checkIn, checkOut]);
 
   const product = products.find((p) => p.key === typeKey)!;
   const productAvail = avail?.products.find((p) => p.key === typeKey);
@@ -134,6 +165,7 @@ export default function BookingWidget({
         paymentMethod: method,
         utm,
         honeypot,
+        couponCode: coupon?.code,
       });
       if (!res.ok) {
         setError(res.error);
@@ -348,6 +380,45 @@ export default function BookingWidget({
             <input className="field" placeholder="03xx xxxxxxx" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
         </div>
+        <div className="mt-4">
+          <label className="label">Coupon code (optional)</label>
+          <div className="flex gap-2">
+            <input
+              className="field uppercase"
+              placeholder="e.g. COLONY10"
+              value={couponInput}
+              onChange={(e) => setCouponInput(e.target.value)}
+            />
+            {coupon ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCoupon(null);
+                  setCouponInput("");
+                }}
+                className="btn btn-outline !py-2.5 !px-5 text-sm shrink-0"
+              >
+                Remove
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => applyCoupon(couponInput)}
+                disabled={couponBusy || !couponInput.trim()}
+                className="btn btn-outline !py-2.5 !px-5 text-sm shrink-0"
+              >
+                {couponBusy ? <Loader2 size={15} className="animate-spin" /> : "Apply"}
+              </button>
+            )}
+          </div>
+          {coupon && (
+            <p className="text-[12.5px] mt-1.5 font-medium">
+              ✓ {coupon.label} applied
+              {!hidePrices && coupon.discountPkr > 0 ? ` · you save ${pkr(coupon.discountPkr)}` : hidePrices ? " · we'll take it off your price" : ""}
+            </p>
+          )}
+          {couponError && <p className="text-[12.5px] mt-1.5 text-red-600">{couponError}</p>}
+        </div>
         <input
           type="text"
           value={honeypot}
@@ -371,7 +442,7 @@ export default function BookingWidget({
             "Full for these dates — choose the other option"
           ) : (
             <>
-              {hidePrices ? "Send pre-booking request" : `Request booking ${quote ? `· ${pkr(quote.totalPkr)}` : ""}`}{" "}
+              {hidePrices ? "Send pre-booking request" : `Request booking ${quote ? `· ${pkr(quote.totalPkr - (coupon?.discountPkr ?? 0))}` : ""}`}{" "}
               <ArrowRight size={16} />
             </>
           )}
@@ -432,10 +503,19 @@ export default function BookingWidget({
                   <span className="shrink-0">{pkr(l.subtotalPkr)}</span>
                 </div>
               ))}
+              {coupon && coupon.discountPkr > 0 && (
+                <div className="flex justify-between gap-4">
+                  <span className="text-paper/70 leading-snug">{coupon.label}</span>
+                  <span className="shrink-0">−{pkr(coupon.discountPkr)}</span>
+                </div>
+              )}
               <div className="flex justify-between items-end pt-3 border-t border-paper/15">
                 <span className="text-paper/70">Total</span>
                 <span className="font-display font-extrabold text-3xl tracking-tight">
-                  {pkr(quote.totalPkr)}
+                  {coupon && coupon.discountPkr > 0 && (
+                    <span className="text-base font-medium text-paper/50 line-through mr-2">{pkr(quote.totalPkr)}</span>
+                  )}
+                  {pkr(quote.totalPkr - (coupon?.discountPkr ?? 0))}
                 </span>
               </div>
               {nights >= 7 && (

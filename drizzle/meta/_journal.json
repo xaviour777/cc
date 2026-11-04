@@ -15,6 +15,13 @@
       "when": 1793145865845,
       "tag": "0001_outgoing_songbird",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793819802979,
+      "tag": "0002_members_coupons",
+      "breakpoints": true
     }
   ]
 }

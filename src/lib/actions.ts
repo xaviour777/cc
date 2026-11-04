@@ -28,9 +28,10 @@ import {
   verifyResidentReference,
   bookingByReference,
 } from "@/lib/stays";
-import { queueLeadSync, recordNotification } from "@/lib/ghl";
+import { queueLeadSync, recordNotification, teamInbox } from "@/lib/ghl";
 import { STUDIO_SLOTS } from "@/lib/studio";
 import { saveKycFile } from "@/lib/kyc-storage";
+import { evaluateCoupon } from "@/lib/coupons";
 import { isISODate, maskIdNumber, nightsBetween, todayISO } from "@/lib/utils";
 
 // ---------- Availability + quotes for the booking widget ----------
@@ -81,6 +82,37 @@ export async function checkStayAvailability(checkIn: string, checkOut: string) {
   };
 }
 
+// ---------- Coupon preview for the booking widget ----------
+export async function previewStayCoupon(input: {
+  code: string;
+  accommodationKey: "SHARED_BUNK" | "PRIVATE_ROOM";
+  checkIn: string;
+  checkOut: string;
+}) {
+  if (!isISODate(input.checkIn) || !isISODate(input.checkOut))
+    return { ok: false as const, error: "Choose your dates first." };
+  const nights = nightsBetween(input.checkIn, input.checkOut);
+  const [type] = await db
+    .select()
+    .from(accommodationTypes)
+    .where(eq(accommodationTypes.key, input.accommodationKey))
+    .limit(1);
+  if (!type || nights < 1) return { ok: false as const, error: "Choose your dates first." };
+  const hidePrices = await getHidePrices();
+  const quote = quoteStay(await getPlansFor(type.id), nights, 1);
+  const subtotal = quote.ok && !hidePrices ? quote.totalPkr : 0;
+  const c = await evaluateCoupon(input.code, subtotal, "STAY", nights);
+  if (!c.ok) return { ok: false as const, error: c.error };
+  return {
+    ok: true as const,
+    code: c.coupon.code,
+    label: c.label,
+    discountPkr: c.discountPkr,
+    totalPkr: subtotal - c.discountPkr,
+    pricesHidden: hidePrices,
+  };
+}
+
 // ---------- Month calendar for the booking widget ----------
 export async function getStayCalendar(month: string) {
   if (!/^\d{4}-\d{2}$/.test(month)) return [];
@@ -102,6 +134,7 @@ export async function submitBooking(input: {
   paymentMethod: "BANK_TRANSFER" | "RAAST" | "CARD_LINK" | "CASH_ON_ARRIVAL";
   utm?: Record<string, string>;
   honeypot?: string;
+  couponCode?: string;
 }) {
   if (input.honeypot) return { ok: false as const, error: "Something went wrong." };
   const result = await createBooking(input);
@@ -489,6 +522,14 @@ export async function uploadKyc(formData: FormData) {
     mime: file.type,
     sizeBytes: file.size,
     status: "PENDING",
+  });
+  await recordNotification({
+    channel: "EMAIL",
+    to: await teamInbox(),
+    subject: `KYC uploaded — ${booking.reference}`,
+    body: `${booking.guestName} uploaded a ${docType} for booking ${booking.reference}. Review it in Admin → KYC.`,
+    entityType: "booking",
+    entityId: booking.id,
   });
   return { ok: true as const };
 }

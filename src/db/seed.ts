@@ -174,7 +174,7 @@ async function main() {
     secondaryTagline: "Come as a stranger. Create as a friend.",
     introLine:
       "A creative home in Lahore for people who build, create, explore, and never stop learning.",
-    contactEmail: "hello@contentcolony.pk",
+    contactEmail: "hello@contentcolony.live",
     whatsappNumber: "", // set from admin → settings once the owner confirms
     instagram: "",
     tiktok: "",

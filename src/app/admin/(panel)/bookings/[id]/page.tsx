@@ -14,7 +14,9 @@ import {
   refunds,
   rooms,
   signedAgreements,
+  users,
 } from "@/db/schema";
+import MemberLinkButton from "@/components/admin/member-link";
 import { addPayment, confirmPaymentAction, refundPayment } from "@/app/admin/actions";
 import { formatDate, pkr } from "@/lib/utils";
 import { ActionButton, AdminBadge } from "@/components/admin/form-shell";
@@ -41,6 +43,8 @@ export default async function BookingDetailPage({
     db.select().from(inventoryBlocks),
     db.select().from(bookings).where(and(ne(bookings.id, id), ne(bookings.status, "CANCELLED"), ne(bookings.status, "COMPLETED"))),
   ]);
+  const [memberRow] = await db.select().from(users).where(eq(users.email, b.guestEmail)).limit(1);
+  const member = memberRow && memberRow.role === "USER" ? memberRow : null;
 
   const paidConfirmed = pays.filter((p) => p.status === "CONFIRMED").reduce((s, p) => s + p.amountPkr, 0) -
     refs.filter((r) => r.status === "PROCESSED" && pays.some((p) => p.id === r.paymentId)).reduce((s, r) => s + r.amountPkr, 0);
@@ -223,6 +227,18 @@ export default async function BookingDetailPage({
                 ))}
               </ul>
             )}
+          </div>
+
+          <div className="rounded-2xl border border-line bg-paper p-5">
+            <p className="text-[11px] tracking-[0.14em] uppercase font-semibold text-ink-soft">Member account</p>
+            <p className="text-sm mt-3">
+              {member
+                ? member.passwordHash.includes(":")
+                  ? "Active member, password set. They can sign in at /account."
+                  : "Account created, password not set yet."
+                : "No account yet. It is created automatically when a payment is confirmed."}
+            </p>
+            <MemberLinkButton bookingId={b.id} guestName={b.guestName} phone={b.guestPhone} />
           </div>
 
           <div className="rounded-2xl border border-line bg-paper p-5">

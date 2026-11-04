@@ -1,6 +1,13 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { ghlSyncs, notifications } from "@/db/schema";
+import { sendMail } from "@/lib/mailer";
+import { getSetting } from "@/lib/stays";
+
+/** The team inbox that gets a copy of every booking / event email. */
+export async function teamInbox(): Promise<string> {
+  return String(await getSetting<string>("contactEmail", "hello@contentcolony.live"));
+}
 
 /**
  * GoHighLevel lead sync queue.
@@ -149,17 +156,25 @@ export async function recordNotification(input: {
   body: string;
   entityType?: string;
   entityId?: number;
+  /** false = don't copy the team inbox (e.g. password links). */
+  copyTeam?: boolean;
 }) {
-  // Provider credentials (transactional email / WhatsApp Business API) are
-  // pending owner authorization — messages are durably queued and visible in
-  // admin, never silently dropped.
+  // Email goes out through SMTP when configured (see lib/mailer.ts);
+  // otherwise, and for WhatsApp, the message stays QUEUED in admin.
+  const sent = input.channel === "EMAIL" ? await sendMail(input.to, input.subject, input.body) : false;
   await db.insert(notifications).values({
     channel: input.channel,
     toRef: input.to,
     subject: input.subject,
     body: input.body,
-    status: "QUEUED",
+    status: sent ? "SENT" : "QUEUED",
     entityType: input.entityType ?? null,
     entityId: input.entityId ?? null,
+    sentAt: sent ? new Date() : null,
   });
+  if (input.channel === "EMAIL" && input.copyTeam !== false) {
+    const team = await teamInbox();
+    if (team && team.toLowerCase() !== input.to.toLowerCase())
+      await sendMail(team, `[Copy] ${input.subject}`, `Sent to: ${input.to}\n\n${input.body}`);
+  }
 }

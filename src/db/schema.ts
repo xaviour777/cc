@@ -97,6 +97,7 @@ export const users = pgTable(
     email: text("email").notNull().unique(),
     passwordHash: text("password_hash").notNull(),
     role: roleEnum("role").notNull().default("USER"),
+    phone: text("phone"),
     mfaSecret: text("mfa_secret"),
     mfaEnabled: boolean("mfa_enabled").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -222,6 +223,8 @@ export const bookings = pgTable(
     totalPkr: integer("total_pkr").notNull(),
     // true while the stay is a pre-booking request waiting for a custom price
     pricePending: boolean("price_pending").notNull().default(false),
+    couponCode: text("coupon_code"),
+    discountPkr: integer("discount_pkr").notNull().default(0),
     currency: text("currency").notNull().default("PKR"),
     status: bookingStatusEnum("status").notNull().default("PENDING_PAYMENT"),
     minStayOverride: boolean("min_stay_override").notNull().default(false),
@@ -623,7 +626,40 @@ export const notifications = pgTable("notifications", {
   sentAt: timestamp("sent_at", { withTimezone: true }),
 });
 
+// ---------- Coupons ----------
+export const coupons = pgTable("coupons", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(), // stored upper-case
+  kind: text("kind").notNull().default("PERCENT"), // PERCENT | FIXED
+  value: integer("value").notNull(), // percent (1-100) or PKR
+  appliesTo: text("applies_to").notNull().default("STAY"), // STAY | EVENT | ALL
+  minNights: integer("min_nights"),
+  maxUses: integer("max_uses"),
+  usedCount: integer("used_count").notNull().default(0),
+  expiresOn: date("expires_on", { mode: "string" }), // last valid day, inclusive
+  active: boolean("active").notNull().default(true),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// ---------- Member accounts: one-time links to set a password ----------
+export const accountTokens = pgTable("account_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // ---------- Types ----------
+export type Coupon = typeof coupons.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type RatePlan = typeof ratePlans.$inferSelect;
 export type Event = typeof events.$inferSelect;
