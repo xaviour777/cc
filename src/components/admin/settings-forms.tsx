@@ -37,6 +37,10 @@ export function SiteSettingsForm({ initial }: { initial: Record<string, string |
           <input type="number" min={1} className="field" value={String(f.minStayNights ?? 3)} onChange={(e) => set("minStayNights", Number(e.target.value))} />
         </div>
         <div>
+          <label className="label">Monthly operating expense (PKR)</label>
+          <input type="number" min={0} className="field" value={String(f.monthlyOpexPkr ?? 400000)} onChange={(e) => set("monthlyOpexPkr", Number(e.target.value))} />
+        </div>
+        <div>
           <label className="label">Default resident discount (%)</label>
           <input type="number" min={0} max={100} className="field" value={String(f.residentDiscountPct ?? 25)} onChange={(e) => set("residentDiscountPct", Number(e.target.value))} />
         </div>

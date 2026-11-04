@@ -1,6 +1,7 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  accommodationTypes,
   articles,
   beds,
   bookings,
@@ -8,9 +9,12 @@ import {
   eventRegistrations,
   events,
   ghlSyncs,
+  inventoryBlocks,
   payments,
+  ratePlans,
   rooms,
 } from "@/db/schema";
+import { getSetting } from "@/lib/stays";
 import { pkr, todayISO } from "@/lib/utils";
 import { AdminBadge } from "@/components/admin/form-shell";
 
@@ -28,7 +32,7 @@ export default async function ReportsPage() {
   const today = todayISO();
   const monthStart = today.slice(0, 7) + "-01";
 
-  const [pays, bks, regs, evs, allBeds, allRooms, proposals, ghl, arts] = await Promise.all([
+  const [pays, bks, regs, evs, allBeds, allRooms, proposals, ghl, arts, plans, blocks, allRoomRows, opexSetting, types] = await Promise.all([
     db.select().from(payments),
     db.select().from(bookings),
     db.select().from(eventRegistrations),
@@ -38,6 +42,11 @@ export default async function ReportsPage() {
     db.select().from(eventProposals),
     db.select().from(ghlSyncs),
     db.select().from(articles),
+    db.select().from(ratePlans).where(eq(ratePlans.active, true)),
+    db.select().from(inventoryBlocks),
+    db.select().from(rooms),
+    getSetting<number>("monthlyOpexPkr", 400000),
+    db.select().from(accommodationTypes),
   ]);
 
   const confirmed = pays.filter((p) => p.status === "CONFIRMED");
@@ -83,11 +92,104 @@ export default async function ReportsPage() {
   const paidWorkshops = evs.filter((e) => e.status === "PUBLISHED" && e.ticketPkr > 0);
   const conversionBase = paidWorkshops.reduce((s, e) => s + e.capacity, 0);
 
+
+  // ---------- Monthly projection vs operating expense ----------
+  const opex = Number(opexSetting) || 0;
+  const monthEnd = new Date(Date.UTC(Number(monthStart.slice(0, 4)), Number(monthStart.slice(5, 7)), 1)).toISOString().slice(0, 10);
+  const overlapNights = (a: string, b: string) =>
+    Math.max(0, Math.round((new Date(b < monthEnd ? b : monthEnd).getTime() - new Date(a > monthStart ? a : monthStart).getTime()) / 86400000));
+  const roomById = new Map(allRoomRows.map((r) => [r.id, r]));
+  const priceFor = (typeKey: string) => {
+    const typeId = types.find((t) => t.key === typeKey)?.id;
+    const own = plans.filter((p) => p.accommodationTypeId === typeId);
+    const nightly = own.find((p) => p.unitNights === 1)?.pricePkr ?? 0;
+    const monthly = own.find((p) => p.unitNights >= 28);
+    return { nightly, monthlyPerNight: monthly ? monthly.pricePkr / monthly.unitNights : nightly };
+  };
+  const units = [
+    ...allBeds
+      .filter((b) => b.active && roomById.get(b.roomId)?.active && roomById.get(b.roomId)?.type === "SHARED_BUNK")
+      .map((b) => ({ kind: "SHARED_BUNK", bedId: b.id as number | null, roomId: b.roomId })),
+    ...allRoomRows
+      .filter((r) => r.active && r.type === "PRIVATE_ROOM")
+      .map((r) => ({ kind: "PRIVATE_ROOM", bedId: null as number | null, roomId: r.id })),
+  ];
+  const unitRows = units.map((u) => {
+    const blocked = blocks
+      .filter((k) => (u.bedId && k.bedId === u.bedId) || (k.roomId === u.roomId && !k.bedId))
+      .reduce((s, k) => s + overlapNights(k.startDate, k.endDate), 0);
+    const avail = Math.max(0, daysInMonth - blocked);
+    const pr = priceFor(u.kind);
+    return { ...u, blocked, avail, fullNightly: avail * pr.nightly, fullMonthly: Math.round(avail * pr.monthlyPerNight) };
+  });
+  const sellableNights = unitRows.reduce((s, u) => s + u.avail, 0);
+  const blockedNights = unitRows.reduce((s, u) => s + u.blocked, 0);
+  const fullAtNightly = unitRows.reduce((s, u) => s + u.fullNightly, 0);
+  const fullAtMonthly = unitRows.reduce((s, u) => s + u.fullMonthly, 0);
+  const monthBookings = bks.filter(
+    (b) => b.status !== "CANCELLED" && b.checkIn < monthEnd && b.checkOut > monthStart
+  );
+  const bookedThisMonth = Math.round(
+    monthBookings.reduce((s, b) => s + (b.nights > 0 ? (b.totalPkr / b.nights) * overlapNights(b.checkIn, b.checkOut) : 0), 0)
+  );
+  const soldNightsThisMonth = monthBookings.reduce((s, b) => s + overlapNights(b.checkIn, b.checkOut), 0);
+  const monthResult = bookedThisMonth - opex;
+  const breakEvenPct = (full: number) => (full > 0 ? Math.round((opex / full) * 100) : 0);
+  const scenarios = [25, 50, 75, 100].map((pct) => ({
+    pct,
+    nightly: Math.round((fullAtNightly * pct) / 100),
+    monthly: Math.round((fullAtMonthly * pct) / 100),
+  }));
+  const monthLabel = new Date(monthStart).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const bunkCount = unitRows.filter((u) => u.kind === "SHARED_BUNK").length;
+  const privCount = unitRows.filter((u) => u.kind === "PRIVATE_ROOM").length;
+  const privFree = unitRows.filter((u) => u.kind === "PRIVATE_ROOM" && u.avail > 0).length;
+  const signed = (n: number) => (n >= 0 ? `+${pkr(n)}` : `−${pkr(Math.abs(n))}`);
+
   return (
     <div>
       <h1 className="font-display font-extrabold text-3xl tracking-tight">Reports</h1>
       <p className="text-sm text-ink-soft mt-1">Simple, honest numbers — refundable deposits never count as revenue.</p>
 
+
+      <h2 className="font-display font-bold text-xl tracking-tight mt-8">Profit &amp; loss projection · {monthLabel}</h2>
+      <p className="text-sm text-ink-soft mt-1">
+        Monthly operating expense {pkr(opex)} (change it in Settings). {bunkCount} bunks and {privCount} private rooms listed, {privFree} private room{privFree === 1 ? "" : "s"} sellable this month; {blockedNights} unit-nights blocked (team / held).
+      </p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+        <Card label="Booked revenue this month" value={pkr(bookedThisMonth)} sub={`${soldNightsThisMonth} of ${sellableNights} sellable unit-nights`} />
+        <Card
+          label={monthResult >= 0 ? "Profit this month" : "Loss this month"}
+          value={signed(monthResult)}
+          sub={`Booked revenue − ${pkr(opex)} expense`}
+        />
+        <Card label="Break-even occupancy" value={`${breakEvenPct(fullAtMonthly)}%`} sub={`at monthly package prices · ${breakEvenPct(fullAtNightly)}% at nightly prices`} />
+        <Card label="Expense covered" value={`${opex > 0 ? Math.round((bookedThisMonth / opex) * 100) : 0}%`} sub="Booked revenue ÷ operating expense" />
+      </div>
+      <div className="mt-4 rounded-2xl border border-line bg-paper overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
+          <thead>
+            <tr className="text-left text-[11px] tracking-[0.12em] uppercase text-ink-soft border-b border-line">
+              <th className="px-5 py-3.5 font-semibold">Occupancy</th>
+              <th className="px-5 py-3.5 font-semibold">Revenue (monthly packages)</th>
+              <th className="px-5 py-3.5 font-semibold">Profit / loss</th>
+              <th className="px-5 py-3.5 font-semibold">Revenue (nightly price)</th>
+              <th className="px-5 py-3.5 font-semibold">Profit / loss</th>
+            </tr>
+          </thead>
+          <tbody>
+            {scenarios.map((sc) => (
+              <tr key={sc.pct} className="border-b border-line last:border-0">
+                <td className="px-5 py-3.5 font-medium">{sc.pct}%</td>
+                <td className="px-5 py-3.5">{pkr(sc.monthly)}</td>
+                <td className={`px-5 py-3.5 font-semibold ${sc.monthly - opex < 0 ? "text-red-600" : "text-emerald-700"}`}>{signed(sc.monthly - opex)}</td>
+                <td className="px-5 py-3.5">{pkr(sc.nightly)}</td>
+                <td className={`px-5 py-3.5 font-semibold ${sc.nightly - opex < 0 ? "text-red-600" : "text-emerald-700"}`}>{signed(sc.nightly - opex)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
         <Card label="Revenue collected (all time)" value={pkr(stayRevenue + ticketRevenue)} sub={`${pkr(stayRevenue)} stays · ${pkr(ticketRevenue)} tickets`} />
         <Card label="Revenue outstanding" value={pkr(outstanding)} sub="Pending payment requests" />
