@@ -228,6 +228,27 @@ export default async function BookingDetailPage({
           <div className="rounded-2xl border border-line bg-paper p-5">
             <p className="text-[11px] tracking-[0.14em] uppercase font-semibold text-ink-soft">KYC documents</p>
             {kyc.length === 0 && <p className="text-sm text-ink-soft mt-3">Guest hasn&apos;t uploaded ID yet.</p>}
+            {kyc.every((k) => k.status === "REJECTED") && (() => {
+              const portalUrl = `${(process.env.SITE_URL ?? "https://contentcolony.live").replace(/\/$/, "")}/booking/${b.reference}?email=${encodeURIComponent(b.guestEmail)}`;
+              const phone = b.guestPhone.replace(/\D/g, "").replace(/^0/, "92");
+              const text = `Assalam-o-alaikum ${b.guestName}! Please upload your CNIC / passport for booking ${b.reference} here: ${portalUrl}`;
+              return (
+                <div className="mt-3 rounded-xl bg-mist px-4 py-3 text-[12.5px]">
+                  <p className="text-ink-soft">Send the guest their upload link:</p>
+                  <p className="font-mono break-all mt-1 select-all">{portalUrl}</p>
+                  {phone && (
+                    <a
+                      href={`https://wa.me/${phone}?text=${encodeURIComponent(text)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-primary !py-2 !px-4 text-[12.5px] mt-2 inline-flex"
+                    >
+                      Send KYC link on WhatsApp
+                    </a>
+                  )}
+                </div>
+              );
+            })()}
             <ul className="mt-3 space-y-2">
               {kyc.map((k) => (
                 <li key={k.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-mist px-4 py-3 text-sm">
