@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@electric-sql/pglite"],
+  // KYC photos/PDFs are sent through a server action (default limit 1 MB).
+  experimental: {
+    serverActions: { bodySizeLimit: "4mb" },
+  },
   // Pin the project root so a stray package-lock.json in a parent folder
   // (e.g. C:\Users\<name>) is not picked up as the workspace root.
   turbopack: {

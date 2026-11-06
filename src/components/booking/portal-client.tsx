@@ -57,6 +57,24 @@ export function PortalVerify({ reference }: { reference: string }) {
 }
 
 // ---------- KYC upload ----------
+// Phone photos are often 3-8 MB; the server accepts up to 4 MB, so large
+// images are scaled down to 2000px JPEG in the browser first.
+async function shrinkImage(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.size < 1.5 * 1024 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+    if (!blob) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
 export function KycUpload({
   reference,
   email,
@@ -86,13 +104,16 @@ export function KycUpload({
       fd.set("email", email);
       fd.set("docType", docType);
       fd.set("idNumber", idNumber);
-      fd.set("file", file);
+      fd.set("file", await shrinkImage(file));
       const res = await uploadKyc(fd);
       if (!res.ok) {
         setError(res.error);
         return;
       }
+      setFile(null);
       router.refresh();
+    } catch {
+      setError("Upload failed. Try a smaller photo (under 4 MB) or a PDF, and check your internet.");
     } finally {
       setBusy(false);
     }
