@@ -9,6 +9,7 @@ import {
   cancelBooking,
   checkInGuest,
   checkOutGuest,
+  refundPayment,
   setComplianceFlag,
   setCustomPrice,
 } from "@/app/admin/actions";
@@ -310,5 +311,21 @@ export function CustomPriceForm({
       </button>
       {msg && <p className="text-sm mt-2">{msg}</p>}
     </div>
+  );
+}
+
+export function RefundButton({ paymentId, amountPkr }: { paymentId: number; amountPkr: number }) {
+  return (
+    <ActionButton
+      variant="danger"
+      action={async () => {
+        const amt = Number(window.prompt("Refund amount (PKR)", String(amountPkr)) ?? 0);
+        const reason = window.prompt("Refund reason") ?? "";
+        if (!amt || !reason) return { ok: false, error: "Amount and reason required" };
+        return refundPayment(paymentId, amt, reason);
+      }}
+    >
+      Refund
+    </ActionButton>
   );
 }

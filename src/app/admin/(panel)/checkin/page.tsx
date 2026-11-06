@@ -2,7 +2,7 @@ import Link from "next/link";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { beds, bookings, checkInOuts, rooms } from "@/db/schema";
-import { checkInGuest, checkOutGuest } from "@/app/admin/actions";
+import { CheckInButton, CheckOutButton } from "@/components/admin/inline-actions";
 import { formatDate, todayISO } from "@/lib/utils";
 import { ActionButton, AdminBadge } from "@/components/admin/form-shell";
 
@@ -29,26 +29,10 @@ function BookingRow({
         {b.status.replace(/_/g, " ")}
       </AdminBadge>
       {action === "in" && (
-        <ActionButton
-          variant="primary"
-          action={async () => {
-            const notes = window.prompt("Check-in notes (optional)") ?? "";
-            return checkInGuest(b.id, notes);
-          }}
-        >
-          Check in
-        </ActionButton>
+        <CheckInButton bookingId={b.id} />
       )}
       {action === "out" && (
-        <ActionButton
-          variant="primary"
-          action={async () => {
-            const notes = window.prompt("Check-out notes (optional)") ?? "";
-            return checkOutGuest(b.id, notes);
-          }}
-        >
-          Check out
-        </ActionButton>
+        <CheckOutButton bookingId={b.id} />
       )}
       <Link href={`/admin/bookings/${b.id}`} className="text-[12.5px] font-medium underline underline-offset-2">
         Open

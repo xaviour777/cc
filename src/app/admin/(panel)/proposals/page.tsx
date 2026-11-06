@@ -1,7 +1,8 @@
 import { desc } from "drizzle-orm";
 import { db } from "@/db";
 import { eventProposals } from "@/db/schema";
-import { approveProposalToEvent, setProposalStatus } from "@/app/admin/actions";
+import { setProposalStatus } from "@/app/admin/actions";
+import { ApproveProposalButton, RejectProposalButton } from "@/components/admin/inline-actions";
 import { formatDate } from "@/lib/utils";
 import { ActionButton, AdminBadge } from "@/components/admin/form-shell";
 
@@ -48,28 +49,10 @@ export default async function ProposalsPage() {
                 <ActionButton action={setProposalStatus.bind(null, p.id, "REVIEWED", "")}>Mark reviewed</ActionButton>
               )}
               {p.status !== "APPROVED" && (
-                <ActionButton
-                  variant="primary"
-                  confirm="Approve and convert this into an event draft?"
-                  action={async () => {
-                    const res = await approveProposalToEvent(p.id);
-                    if (res.ok && res.eventId) window.location.href = `/admin/events?edit=${res.eventId}`;
-                    return res;
-                  }}
-                >
-                  Approve → event draft
-                </ActionButton>
+                <ApproveProposalButton proposalId={p.id} />
               )}
               {p.status !== "REJECTED" && p.status !== "APPROVED" && (
-                <ActionButton
-                  variant="danger"
-                  action={async () => {
-                    const note = window.prompt("Reason / note for the organizer?") ?? "";
-                    return setProposalStatus(p.id, "REJECTED", note);
-                  }}
-                >
-                  Reject
-                </ActionButton>
+                <RejectProposalButton proposalId={p.id} />
               )}
             </div>
           </div>

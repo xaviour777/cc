@@ -17,10 +17,10 @@ import {
   users,
 } from "@/db/schema";
 import MemberLinkButton from "@/components/admin/member-link";
-import { addPayment, confirmPaymentAction, refundPayment } from "@/app/admin/actions";
+import { addPayment, confirmPaymentAction } from "@/app/admin/actions";
 import { formatDate, pkr } from "@/lib/utils";
 import { ActionButton, AdminBadge } from "@/components/admin/form-shell";
-import { AssignUnitSelect, BookingOps, CustomPriceForm } from "@/components/admin/booking-actions";
+import { AssignUnitSelect, BookingOps, CustomPriceForm, RefundButton } from "@/components/admin/booking-actions";
 
 export default async function BookingDetailPage({
   params,
@@ -168,17 +168,7 @@ export default async function BookingDetailPage({
                       <ActionButton variant="primary" action={confirmPaymentAction.bind(null, p.id)}>Confirm</ActionButton>
                     )}
                     {p.status === "CONFIRMED" && (
-                      <ActionButton
-                        variant="danger"
-                        action={async () => {
-                          const amt = Number(window.prompt("Refund amount (PKR)", String(p.amountPkr)) ?? 0);
-                          const reason = window.prompt("Refund reason") ?? "";
-                          if (!amt || !reason) return { ok: false, error: "Amount and reason required" };
-                          return refundPayment(p.id, amt, reason);
-                        }}
-                      >
-                        Refund
-                      </ActionButton>
+                      <RefundButton paymentId={p.id} amountPkr={p.amountPkr} />
                     )}
                   </div>
                 </li>
@@ -275,6 +265,12 @@ export default async function BookingDetailPage({
                   <a href={`/api/kyc/${k.id}`} target="_blank" className="text-[12.5px] font-medium underline underline-offset-2" rel="noreferrer">
                     View securely
                   </a>
+                  {k.mime.startsWith("image/") && (
+                    <a href={`/api/kyc/${k.id}`} target="_blank" rel="noreferrer" className="basis-full">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/api/kyc/${k.id}`} alt={`${k.docType} of ${b.guestName}`} className="mt-2 w-full max-h-64 object-contain rounded-lg bg-paper" />
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
