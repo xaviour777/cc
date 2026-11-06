@@ -10,9 +10,16 @@ const PREFIX = "supabase:";
 const LOCAL_DIR = path.join(process.cwd(), "storage", "kyc");
 
 function supabase() {
-  const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.SUPABASE_URL?.trim().replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   return url && key ? { url, key } : null;
+}
+
+// Legacy service_role keys are JWTs and go in both headers. The newer
+// "sb_secret_..." keys are not JWTs: sending one as a Bearer token makes
+// Storage reject the request ("Invalid Compact JWS"), so only apikey is sent.
+function authHeaders(key: string): Record<string, string> {
+  return key.startsWith("sb_") ? { apikey: key } : { Authorization: `Bearer ${key}`, apikey: key };
 }
 
 /** Saves the file and returns the value to store in kyc_documents.file_path. */
@@ -21,10 +28,10 @@ export async function saveKycFile(name: string, mime: string, data: Buffer): Pro
   if (sb) {
     const res = await fetch(`${sb.url}/storage/v1/object/${BUCKET}/${name}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${sb.key}`, apikey: sb.key, "Content-Type": mime },
+      headers: { ...authHeaders(sb.key), "Content-Type": mime },
       body: new Uint8Array(data),
     });
-    if (!res.ok) throw new Error(`Storage upload failed (${res.status})`);
+    if (!res.ok) throw new Error(`Storage upload failed (${res.status}): ${(await res.text()).slice(0, 200)}`);
     return `${PREFIX}${name}`;
   }
   await fs.mkdir(LOCAL_DIR, { recursive: true });
@@ -38,7 +45,7 @@ export async function readKycFile(stored: string): Promise<Buffer> {
   const sb = supabase();
   if (!sb) throw new Error("Supabase storage is not configured");
   const res = await fetch(`${sb.url}/storage/v1/object/${BUCKET}/${stored.slice(PREFIX.length)}`, {
-    headers: { Authorization: `Bearer ${sb.key}`, apikey: sb.key },
+    headers: authHeaders(sb.key),
   });
   if (!res.ok) throw new Error(`Storage download failed (${res.status})`);
   return Buffer.from(await res.arrayBuffer());

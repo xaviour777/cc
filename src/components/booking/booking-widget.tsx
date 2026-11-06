@@ -315,6 +315,43 @@ export default function BookingWidget({
           </div>
         </div>
 
+        {/* Quick stay lengths: shows how much longer stays save */}
+        {!hidePrices && product.nightlyPkr > 0 && (
+          <div className="mt-4">
+            <p className="label">Quick pick · longer stays cost less per night</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { nights: minStay, label: `${minStay} nights`, price: product.nightlyPkr * minStay },
+                product.weeklyPkr ? { nights: 7, label: "1 week", price: product.weeklyPkr } : null,
+                product.monthlyPkr ? { nights: 30, label: "1 month", price: product.monthlyPkr } : null,
+              ]
+                .filter((o): o is { nights: number; label: string; price: number } => Boolean(o))
+                .map((o) => {
+                  const perNight = Math.round(o.price / o.nights);
+                  const save = Math.round((1 - perNight / product.nightlyPkr) * 100);
+                  const active = nights === o.nights;
+                  return (
+                    <button
+                      key={o.label}
+                      type="button"
+                      onClick={() => setCheckOut(addDaysISO(checkIn, o.nights))}
+                      className={cx(
+                        "rounded-2xl border p-3 text-left transition-colors",
+                        active ? "border-ink bg-ink text-paper" : "border-line hover:border-ink"
+                      )}
+                    >
+                      <span className="block text-[12px] font-semibold">{o.label}</span>
+                      <span className="block font-display font-bold text-base mt-0.5">{pkr(o.price)}</span>
+                      <span className={cx("block text-[11px] mt-0.5", active ? "text-paper/70" : "text-ink-soft")}>
+                        {pkr(perNight)}/night{save > 0 ? ` · save ${save}%` : ""}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
         {tooShort && (
           <div className="mt-4 rounded-2xl bg-mist p-5 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
             <p className="text-sm leading-relaxed">
@@ -518,6 +555,11 @@ export default function BookingWidget({
                   {pkr(quote.totalPkr - (coupon?.discountPkr ?? 0))}
                 </span>
               </div>
+              {product.nightlyPkr > 0 && product.nightlyPkr * nights - quote.totalPkr > 0 && (
+                <p className="text-[13px] font-semibold text-paper">
+                  You save {pkr(product.nightlyPkr * nights - quote.totalPkr)} compared with the nightly price.
+                </p>
+              )}
               {nights >= 7 && (
                 <p className="text-[12px] text-paper/60">
                   Package pricing applied automatically — you never pay the raw

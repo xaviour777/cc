@@ -83,34 +83,47 @@ export function quoteStay(
         "Good things take time. Stay at least 3 nights and feel at home.",
     };
   }
-  const sorted = [...plans].sort((a, b) => b.unitNights - a.unitNights);
-  const lines: QuoteLine[] = [];
-  let remaining = nights;
-  let total = 0;
-  for (const plan of sorted) {
-    if (remaining <= 0) break;
-    if (plan.unitNights > remaining) continue;
-    if (nights < plan.minBookingNights) continue;
-    const qty =
-      plan.unitNights === 1 ? remaining : Math.floor(remaining / plan.unitNights);
-    if (qty <= 0) continue;
-    const subtotal = qty * plan.pricePkr;
-    lines.push({
+  // Cheapest way to cover the stay. A longer package may cover more nights
+  // than booked (e.g. 25 nights on the monthly price) when that is cheaper,
+  // so a longer stay never costs more than the next package up.
+  const usable = plans.filter((p) => p.unitNights >= 1 && p.pricePkr >= 0);
+  if (usable.length === 0)
+    return { ok: false, nights, error: "No rate plan covers these dates." };
+  const INF = Number.POSITIVE_INFINITY;
+  const best: number[] = new Array(nights + 1).fill(INF);
+  const pick: (RatePlan | null)[] = new Array(nights + 1).fill(null);
+  best[0] = 0;
+  for (let i = 1; i <= nights; i++) {
+    for (const plan of usable) {
+      const prev = Math.max(0, i - plan.unitNights);
+      const cost = best[prev] + plan.pricePkr;
+      if (cost < best[i]) {
+        best[i] = cost;
+        pick[i] = plan;
+      }
+    }
+  }
+  if (!Number.isFinite(best[nights])) return { ok: false, nights, error: "No rate plan covers these dates." };
+  const counts = new Map<number, { plan: RatePlan; qty: number }>();
+  for (let i = nights; i > 0; ) {
+    const plan = pick[i]!;
+    const c = counts.get(plan.id) ?? { plan, qty: 0 };
+    c.qty += 1;
+    counts.set(plan.id, c);
+    i = Math.max(0, i - plan.unitNights);
+  }
+  const lines: QuoteLine[] = [...counts.values()]
+    .sort((a, b) => b.plan.unitNights - a.plan.unitNights)
+    .map(({ plan, qty }) => ({
       label:
         plan.unitNights === 1
           ? `${plan.name} · PKR ${plan.pricePkr.toLocaleString("en-PK")} / night`
           : `${plan.name} · ${plan.unitNights}-night package`,
       qty,
       unitPricePkr: plan.pricePkr,
-      subtotalPkr: subtotal,
-    });
-    total += subtotal;
-    remaining -= qty * plan.unitNights;
-  }
-  if (remaining > 0 || lines.length === 0) {
-    return { ok: false, nights, error: "No rate plan covers these dates." };
-  }
-  return { ok: true, nights, lines, totalPkr: total };
+      subtotalPkr: qty * plan.pricePkr,
+    }));
+  return { ok: true, nights, lines, totalPkr: best[nights] };
 }
 
 const HOLDING: Array<(typeof bookings.status.enumValues)[number]> = [
