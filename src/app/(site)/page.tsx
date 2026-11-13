@@ -38,7 +38,6 @@ export default async function HomePage() {
   // Stays are request-only for now: prices are shared on WhatsApp.
   const hidePrices = true;
   const featured = events.filter((e) => e.featured && e.kind === "WORKSHOP");
-  const community = events.filter((e) => e.kind !== "WORKSHOP").slice(0, 3);
 
   return (
     <div>
@@ -68,7 +67,7 @@ export default async function HomePage() {
               <Link href="/book" className="btn btn-primary">
                 Book a Pass <ArrowRight size={16} />
               </Link>
-              <Link href="/book?stay=1#stay" className="btn btn-outline">
+              <Link href="/stay" className="btn btn-outline">
                 Find Your Stay
               </Link>
             </div>
@@ -133,8 +132,8 @@ export default async function HomePage() {
                 and eat dinner with people who get it.
               </p>
               <p className="text-ink-soft mt-5 leading-relaxed">
-                Eight bunks, two private rooms, a coworking lounge, a production
-                studio, a call pod and a kitchen that never really closes — wrapped
+                Eight bunks, four private rooms, a coworking lounge, a production
+                studio, a soundproof meeting pod and a kitchen that never really closes — wrapped
                 around a community of YouTubers, filmmakers, editors, designers and
                 founders. Come for three nights. Stay for the people.
               </p>
@@ -142,7 +141,7 @@ export default async function HomePage() {
             <Reveal delay={180}>
               <div className="grid grid-cols-3 gap-4 mt-10 border-t border-line pt-8">
                 {[
-                  ["10", "places to sleep"],
+                  ["12", "places to sleep"],
                   ["25%", "resident workshop discount"],
                   ["7", "dinners a week, together"],
                 ].map(([n, l]) => (
@@ -165,15 +164,15 @@ export default async function HomePage() {
               <p className="kicker text-ink-soft">Stay with us</p>
               <h2 className="display-lg mt-3">Pick your corner.</h2>
             </div>
-            <Link href="/book?stay=1#stay" className="btn btn-outline">
-              Request a stay <ArrowUpRight size={15} />
+            <Link href="/stay" className="btn btn-outline">
+              Request to live here <ArrowUpRight size={15} />
             </Link>
           </Reveal>
 
           <div className="grid md:grid-cols-2 gap-5">
             {products.map((p, i) => (
               <Reveal key={p.key} delay={i * 90}>
-                <Link href={`/book?stay=1#stay`} className="group block rounded-3xl overflow-hidden border border-line card-lift bg-paper">
+                <Link href={`/stay?room=${p.key === "SHARED_BUNK" ? "bunker" : "private"}#request`} className="group block rounded-3xl overflow-hidden border border-line card-lift bg-paper">
                   <div className="img-frame aspect-[16/10]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -210,7 +209,7 @@ export default async function HomePage() {
                     <div className="flex items-center justify-between mt-6 pt-5 border-t border-line">
                       <p>
                         {hidePrices ? (
-                          <span className="font-display font-bold text-lg tracking-tight">Price on request</span>
+                          <span className="font-display font-bold text-lg tracking-tight">Your spot is waiting</span>
                         ) : (
                           <>
                             <span className="font-display font-extrabold text-2xl tracking-tight">{pkr(p.nightlyPkr)}</span>
@@ -219,7 +218,7 @@ export default async function HomePage() {
                         )}
                       </p>
                       <span className="inline-flex items-center gap-1.5 text-sm font-medium group-hover:gap-2.5 transition-all">
-                        Check dates <ArrowRight size={15} />
+                        Request this space <ArrowRight size={15} />
                       </span>
                     </div>
                   </div>
@@ -234,11 +233,11 @@ export default async function HomePage() {
       <section className="bg-mist border-y border-line px-5 md:px-10 py-20 md:py-28">
         <div className="mx-auto max-w-[1440px]">
           <Reveal className="max-w-2xl">
-            <p className="kicker text-ink-soft">Included in every stay</p>
+            <p className="kicker text-ink-soft">Part of every stay</p>
             <h2 className="display-lg mt-3">Everything is already yours.</h2>
             <p className="lede mt-4">
-              One rate. No surprises. These come with every bunk and every room,
-              every single night.
+              Every bunk and every room opens the whole Colony to you. Nothing held
+              back, nothing to unlock. Just room to create.
             </p>
           </Reveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-line rounded-3xl overflow-hidden mt-12 border border-line">
@@ -246,11 +245,11 @@ export default async function HomePage() {
               { Icon: Users, t: "Coworking lounge", d: "Shared desks, good chairs, better company." },
               { Icon: Wifi, t: "High-speed Wi-Fi", d: "Backup line included — uploads don't wait." },
               { Icon: Clapperboard, t: "Production studio", d: "Lights, audio, backdrop. Bookable by slot." },
-              { Icon: PhoneCall, t: "Call pod", d: "A quiet booth for calls, podcasts & clients." },
+              { Icon: PhoneCall, t: "Soundproof meeting pod", d: "A private space for client calls, podcasts & interviews." },
               { Icon: ChefHat, t: "Shared kitchen", d: "Cook together or claim the midnight chai shift." },
               { Icon: Sofa, t: "Community lounge", d: "Where collabs start and breaks stretch long." },
               { Icon: Gamepad2, t: "Entertainment area", d: "Console, PC games and tournament nights." },
-              { Icon: Popcorn, t: "Movie nights", d: "Projector on, blankets out, every week." },
+              { Icon: Popcorn, t: "Friday movie premieres", d: "Films made by the community, on the big screen every Friday." },
               { Icon: CalendarHeart, t: "Free meetups", d: "Community sessions are always free for residents." },
             ].map(({ Icon, t, d }, i) => (
               <Reveal key={t} delay={(i % 3) * 70} className="bg-paper">
@@ -295,9 +294,6 @@ export default async function HomePage() {
           </Reveal>
           <div className="grid md:grid-cols-2 gap-5">
             {featured.map((e, i) => (
-              <EventCard key={e.id} event={e} delay={i * 90} />
-            ))}
-            {community.map((e, i) => (
               <EventCard key={e.id} event={e} delay={i * 90} />
             ))}
           </div>
@@ -413,10 +409,7 @@ export default async function HomePage() {
             <p className="lede mt-5">
               Expo Centre Lahore, Emporium Mall and Canal Road are the Colony&apos;s
               next-door neighbours — with food streets, cafés and everything you
-              need within a short walk.*
-            </p>
-            <p className="text-[12px] text-ink-soft mt-3">
-              *Walking-time estimates are verified against the final published map pin before any specific claim is printed.
+              need within a short walk.
             </p>
             <Link href="/neighborhood" className="btn btn-outline mt-7">
               Around the Colony <ArrowRight size={15} />

@@ -1,196 +1,200 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   ArrowDown,
+  ArrowRight,
   BadgeCheck,
-  BadgePercent,
   BedDouble,
-  CalendarDays,
   DoorOpen,
-  ShieldCheck,
+  Lightbulb,
+  Sparkles,
+  Users,
 } from "lucide-react";
-import { getAccommodationTypes, getStayProducts } from "@/lib/data";
-import { getHidePrices, getMinStayNights, getSetting, getWhatsappNumber } from "@/lib/stays";
-import { pkr } from "@/lib/utils";
 import { IMG } from "@/lib/images";
-import Reveal from "@/components/ui/reveal";
-import BookingWidget from "@/components/booking/booking-widget";
+import { getMinStayNights, getWhatsappNumber } from "@/lib/stays";
 import { getMember } from "@/lib/members";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { beds, ratePlans, rooms } from "@/db/schema";
+import Reveal from "@/components/ui/reveal";
+import StayRequest from "@/components/booking/stay-request";
 
 export const metadata: Metadata = {
-  title: "Stay — bunks, private rooms and honest prices",
+  title: "Live at the Colony — request your stay",
   description:
-    "Shared bunks and private rooms in Johar Town, Lahore. Check live availability on the calendar and send a booking request. Minimum 3 nights.",
+    "Content Colony is a home for creators who believe they can build something. From any city — request to live with us in the Bunker or a Private Room.",
 };
 
-export default async function StayPage() {
-  const member = await getMember();
-  const [listedProducts, types, minStay, discount, listedPlans, hidePrices, whatsapp, roomRows, bedRows] = await Promise.all([
-    getStayProducts(),
-    getAccommodationTypes(),
-    getMinStayNights(),
-    getSetting<number>("residentDiscountPct", 25),
-    db.select().from(ratePlans).where(eq(ratePlans.active, true)),
-    getHidePrices(),
-    getWhatsappNumber(),
-    db.select().from(rooms).where(eq(rooms.active, true)),
-    db.select().from(beds).where(eq(beds.active, true)),
-  ]);
-  // In "price on request" mode no price ever reaches the page.
-  const products = hidePrices
-    ? listedProducts.map((p) => ({ ...p, nightlyPkr: 0, weeklyPkr: null, monthlyPkr: null }))
-    : listedProducts;
-  const plans = hidePrices ? [] : listedPlans;
-  const sharedRoomIds = new Set(roomRows.filter((r) => r.type === "SHARED_BUNK").map((r) => r.id));
-  const bunkCount = bedRows.filter((b) => sharedRoomIds.has(b.roomId)).length;
-  const privateCount = roomRows.filter((r) => r.type === "PRIVATE_ROOM").length;
+const ROOMS = [
+  {
+    key: "Bunker" as const,
+    Icon: BedDouble,
+    label: "Shared living · 8 bunks",
+    name: "The Bunker",
+    image: IMG.bunkRoom,
+    line: "Your own bunk in a room full of people who are building something too.",
+    perks: [
+      "A private-feeling bunk with curtain, reading light, shelf and locker",
+      "Late-night edits, early-morning ideas, and a room that gets it",
+      "The whole colony is yours: lounge, studio, kitchen, community nights",
+    ],
+  },
+  {
+    key: "Private Room" as const,
+    Icon: DoorOpen,
+    label: "Private living · 4 rooms",
+    name: "Private Room",
+    image: IMG.privateRoom,
+    line: "A quiet room of your own, with the colony right outside your door.",
+    perks: [
+      "Your own lockable room for deep work and deep sleep",
+      "Coworking lounge, production studio and soundproof meeting pod",
+      "Kitchen, lounge, entertainment area and every community night",
+    ],
+  },
+];
+
+export default async function StayPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ room?: string }>;
+}) {
+  const sp = await searchParams;
+  const [whatsapp, minStay, member] = await Promise.all([getWhatsappNumber(), getMinStayNights(), getMember()]);
+  const initialRoom = sp.room === "private" ? "Private Room" : "Bunker";
 
   return (
-    <div className="px-5 md:px-10 py-14 md:py-20">
-      <div className="mx-auto max-w-[1440px]">
-        <Reveal className="text-center max-w-3xl mx-auto">
-          <p className="kicker text-ink-soft">Stay</p>
-          <h1 className="display-xl mt-4">
-            Sleep well.
-            <br />
-            <span className="serif-em normal-case">Build all day.</span>
-          </h1>
-          <p className="lede mt-5">
-            {hidePrices
-              ? `Stays start at ${minStay} nights. Check live availability below and send a pre-booking request — we share your price and offers on WhatsApp.`
-              : `Prices are per night, stays start at ${minStay} nights, and longer stays get package pricing automatically — never the raw nightly maths.`}
-          </p>
-          <a href="#book" className="btn btn-primary mt-8">
-            Check real availability <ArrowDown size={15} />
-          </a>
-          <p className="text-sm text-ink-soft mt-4">
-            Just coming for a day or a workshop?{" "}
-            <a href="/book" className="u-link font-medium text-ink">Book a pass in one minute</a>
-          </p>
-        </Reveal>
+    <div>
+      {/* ---------- HERO ---------- */}
+      <section className="px-5 md:px-10 pt-14 md:pt-20 pb-16 md:pb-24">
+        <div className="mx-auto max-w-[1440px] grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-16 items-center">
+          <Reveal>
+            <p className="kicker text-ink-soft">Live at the Colony · by request</p>
+            <h1 className="display-xl mt-4">
+              We believe
+              <br />
+              <span className="serif-em normal-case">in you.</span>
+            </h1>
+            <p className="lede mt-6 max-w-xl">
+              Content Colony isn&apos;t a place you book. It&apos;s a home you ask to join. If you&apos;re a
+              creator, from any city, and you believe you can build something real, there&apos;s a bed
+              here with your name on it.
+            </p>
+            <p className="text-ink-soft mt-4 max-w-xl leading-relaxed">
+              Eight bunks. Four private rooms. One table full of people who will push you, cheer for
+              you, and stay up past midnight helping you finish the thing.
+            </p>
+            <div className="flex flex-wrap gap-3 mt-8">
+              <a href="#request" className="btn btn-primary">
+                Request to live here <ArrowDown size={15} />
+              </a>
+              <a href="#rooms" className="btn btn-outline">
+                See the rooms
+              </a>
+            </div>
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="img-frame rounded-3xl aspect-[4/5] lg:aspect-[4/4.6]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={IMG.bunkSocial} alt="Creators living together at Content Colony" className="w-full h-full object-cover" />
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
-        {/* Accommodation cards */}
-        <div className="grid md:grid-cols-2 gap-5 mt-16">
-          {types.map((t, i) => {
-            const p = products.find((x) => x.key === t.key)!;
-            return (
-              <Reveal key={t.id} delay={i * 90}>
-                <article className="rounded-3xl border border-line overflow-hidden bg-paper">
-                  <div className="img-frame aspect-[16/9]">
+      {/* ---------- WHO IT'S FOR ---------- */}
+      <section className="bg-ink text-paper px-5 md:px-10 py-16 md:py-24">
+        <div className="mx-auto max-w-[1440px]">
+          <Reveal className="max-w-3xl">
+            <p className="kicker text-paper/50">Who lives here</p>
+            <h2 className="display-lg mt-3">
+              Not everyone. <span className="serif-em normal-case">The ones who are building.</span>
+            </h2>
+          </Reveal>
+          <div className="grid md:grid-cols-3 gap-4 mt-10">
+            {[
+              { Icon: Lightbulb, t: "You have an idea that won't leave you alone", d: "A channel, a film, a brand, a startup. It doesn't need to be big yet. It needs you." },
+              { Icon: Users, t: "You're tired of building alone", d: "Here, the person in the next bunk is editing too. Collabs happen over chai, not cold DMs." },
+              { Icon: Sparkles, t: "You'll give as much as you take", d: "Share what you know, show up to the sessions, and lift the next creator who walks in." },
+            ].map(({ Icon, t, d }, i) => (
+              <Reveal key={t} delay={i * 80}>
+                <div className="rounded-3xl bg-paper/[0.06] border border-paper/10 p-6 md:p-7 h-full">
+                  <Icon size={20} />
+                  <p className="font-semibold mt-4">{t}</p>
+                  <p className="text-sm text-paper/65 mt-2 leading-relaxed">{d}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- ROOMS ---------- */}
+      <section id="rooms" className="scroll-mt-24 px-5 md:px-10 py-16 md:py-24">
+        <div className="mx-auto max-w-[1440px]">
+          <Reveal className="max-w-2xl">
+            <p className="kicker text-ink-soft">Your corner of the Colony</p>
+            <h2 className="display-lg mt-3">Choose where you&apos;ll create.</h2>
+          </Reveal>
+          <div className="grid md:grid-cols-2 gap-5 mt-10">
+            {ROOMS.map((r, i) => (
+              <Reveal key={r.key} delay={i * 90}>
+                <article className="rounded-3xl border border-line overflow-hidden bg-paper h-full flex flex-col">
+                  <div className="img-frame aspect-[16/10]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={t.image} alt={t.name} className="w-full h-full object-cover" />
+                    <img src={r.image} alt={r.name} loading="lazy" className="w-full h-full object-cover" />
                   </div>
-                  <div className="p-6 md:p-8">
+                  <div className="p-6 md:p-8 flex-1 flex flex-col">
                     <div className="flex items-center gap-2 text-ink-soft">
-                      {t.key === "SHARED_BUNK" ? <BedDouble size={17} /> : <DoorOpen size={17} />}
-                      <span className="text-[12px] tracking-[0.16em] uppercase font-medium">
-                        {t.key === "SHARED_BUNK" ? `Shared living · ${bunkCount} bunks` : `Private accommodation · ${privateCount} rooms`}
-                      </span>
+                      <r.Icon size={17} />
+                      <span className="text-[12px] tracking-[0.16em] uppercase font-medium">{r.label}</span>
                     </div>
-                    <h2 className="font-display font-bold text-2xl md:text-3xl mt-2 tracking-tight">{t.name}</h2>
-                    <p className="text-ink-soft mt-3 leading-relaxed text-[15px]">{t.description}</p>
+                    <h3 className="font-display font-bold text-2xl md:text-3xl mt-2 tracking-tight">{r.name}</h3>
+                    <p className="text-ink-soft mt-2 leading-relaxed text-[15px]">{r.line}</p>
                     <ul className="mt-5 space-y-2">
-                      {t.features.map((f) => (
+                      {r.perks.map((f) => (
                         <li key={f} className="flex gap-2.5 text-sm text-ink-soft">
                           <BadgeCheck size={15} className="shrink-0 mt-0.5 text-ink" /> {f}
                         </li>
                       ))}
                     </ul>
-                    {hidePrices ? (
-                    <div className="mt-6 pt-5 border-t border-line">
-                      <p className="font-display font-bold text-xl tracking-tight">Price on request</p>
-                      <p className="text-sm text-ink-soft mt-1">Custom offers on WhatsApp · {minStay}-night minimum</p>
-                    </div>
-                    ) : (
-                    <div className="mt-6 pt-5 border-t border-line">
-                      <p>
-                        <span className="font-display font-extrabold text-3xl tracking-tight">{pkr(p.nightlyPkr)}</span>
-                        <span className="text-ink-soft"> / {t.key === "SHARED_BUNK" ? "person / night" : "room / night"}</span>
-                      </p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {plans
-                          .filter((pl) => pl.accommodationTypeId === t.id)
-                          .sort((a, b) => a.unitNights - b.unitNights)
-                          .map((pl) => (
-                            <span key={pl.id} className="text-[12px] bg-mist rounded-full px-3 py-1.5">
-                              {pl.unitNights === 1
-                                ? `${minStay}-night minimum`
-                                : `${pl.unitNights} nights · ${pkr(pl.pricePkr)}`}
-                            </span>
-                          ))}
+                    <div className="mt-auto pt-6">
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-line">
+                        <p className="font-display font-bold text-lg tracking-tight">Your spot is waiting</p>
+                        <Link
+                          href={`/stay?room=${r.key === "Bunker" ? "bunker" : "private"}#request`}
+                          scroll={false}
+                          className="btn btn-primary !py-2.5 !px-5 text-sm"
+                        >
+                          Request this space <ArrowRight size={15} />
+                        </Link>
                       </div>
                     </div>
-                    )}
                   </div>
                 </article>
               </Reveal>
-            );
-          })}
-        </div>
-
-        {/* Booking widget */}
-        <Reveal className="mt-16" delay={60}>
-          <div id="book" className="scroll-mt-28">
-            <div className="text-center max-w-xl mx-auto mb-8">
-              <p className="kicker text-ink-soft">Book your stay</p>
-              <h2 className="display-md mt-3">{hidePrices ? "Real beds. Real dates." : "Real beds. Real dates. Real price."}</h2>
-              <p className="text-ink-soft mt-3 text-[15px] leading-relaxed">
-                Availability below is live — a bed is locked to you the moment your
-                request lands, so nobody can double-book it.
-              </p>
-            </div>
-            <BookingWidget
-              products={products}
-              minStay={minStay}
-              hidePrices={hidePrices}
-              whatsapp={whatsapp}
-              member={member ? { name: member.name, email: member.email, phone: member.phone ?? "" } : null}
-            />
+            ))}
           </div>
-        </Reveal>
-
-        {/* How it works */}
-        <div className="grid sm:grid-cols-3 gap-4 mt-16">
-          {[
-            { Icon: CalendarDays, t: "1 · Request & pay", d: "Pick dates, choose bank transfer, Raast, card link or approved cash on arrival." },
-            { Icon: ShieldCheck, t: "2 · Verify your ID", d: "Upload CNIC / NICOP / passport from your booking portal. It stays private, admin-only." },
-            { Icon: BadgePercent, t: "3 · Live the Colony", d: `Sign your stay agreement, check in, and unlock ${discount}% off every workshop.` },
-          ].map(({ Icon, t, d }, i) => (
-            <Reveal key={t} delay={i * 80}>
-              <div className="rounded-3xl bg-mist p-6 md:p-7 h-full">
-                <Icon size={20} />
-                <p className="font-semibold mt-4">{t}</p>
-                <p className="text-sm text-ink-soft mt-1.5 leading-relaxed">{d}</p>
-              </div>
-            </Reveal>
-          ))}
         </div>
+      </section>
 
-        <Reveal className="mt-14">
-          <div className="rounded-3xl overflow-hidden border border-line grid md:grid-cols-2">
-            <div className="img-frame aspect-[4/3] md:aspect-auto">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={IMG.bunkSocial} alt="Residents in a shared room" loading="lazy" className="w-full h-full object-cover" />
-            </div>
-            <div className="p-8 md:p-12 flex flex-col justify-center bg-mist">
-              <p className="kicker text-ink-soft">House notes</p>
-              <h3 className="display-md mt-3">Good things take time.</h3>
-              <p className="text-ink-soft mt-4 leading-relaxed">
-                The {minStay}-night minimum isn&apos;t a rule for rule&apos;s sake — it&apos;s
-                how a stranger becomes a friend before they leave. Community dinners,
-                studio slots, call pod and meetups are all included in every stay.
-              </p>
-              <p className="text-[12.5px] text-ink-soft mt-4">
-                Identity verification (CNIC / NICOP / passport) is a legal requirement
-                for overnight guests in Punjab. Documents are stored privately and
-                only visible to authorized administration.
-              </p>
-            </div>
-          </div>
-        </Reveal>
-      </div>
+      {/* ---------- REQUEST ---------- */}
+      <section id="request" className="scroll-mt-24 px-5 md:px-10 py-16 md:py-24">
+        <div className="mx-auto max-w-3xl">
+          <Reveal className="text-center mb-10">
+            <p className="kicker text-ink-soft">Request to live here</p>
+            <h2 className="display-lg mt-3">
+              Your seat at the table
+              <br />
+              <span className="serif-em normal-case">is one form away.</span>
+            </h2>
+            <p className="lede mt-4">
+              Pick your dates and tell us a little about yourself. Our team reads every request
+              personally and gets back to you on WhatsApp.
+            </p>
+          </Reveal>
+          <StayRequest key={initialRoom} initialRoom={initialRoom} whatsapp={whatsapp} minStay={minStay} member={member ? { name: member.name, email: member.email, phone: member.phone ?? "" } : null} />
+        </div>
+      </section>
     </div>
   );
 }
+
+export const dynamic = "force-dynamic";

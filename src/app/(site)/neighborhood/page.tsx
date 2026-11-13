@@ -28,11 +28,7 @@ export default async function NeighborhoodPage() {
           </h1>
           <p className="lede mt-5">
             {property?.neighborhood ?? "Johar Town, H Block"} — close enough to
-            everything that your lunch break can become a field trip.*
-          </p>
-          <p className="text-[12px] text-ink-soft mt-3">
-            *Specific walking times are verified against our confirmed map pin before
-            we publish any exact claim.
+            everything that your lunch break can become a field trip.
           </p>
         </Reveal>
 
