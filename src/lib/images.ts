@@ -12,7 +12,7 @@ export const IMG = {
   bunkSocial: U(4907183), // high five in dorm
   bunkFriends: U(5158948), // friends socializing in dorm
   bunkTalk: U(4907197), // women talking on bunks
-  privateRoom: "/images/private-room.jpg", // Colony resident (own photo)
+  privateRoom: U(16435057), // minimalist bedroom with plant, no people
   studioCrew: U(19102538), // studio crew
   studioCamera: U(36287813), // film crew camera
   studioSet: U(8088379), // videographer on set
