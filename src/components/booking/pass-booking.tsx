@@ -45,14 +45,17 @@ export default function PassBooking({
   events,
   whatsapp,
   initialEvent,
+  initialStay = false,
   member,
 }: {
   events: EventOption[];
   whatsapp: string;
   initialEvent?: string;
+  initialStay?: boolean;
   member: { name: string; email: string; phone: string } | null;
 }) {
-  const [eventSlug, setEventSlug] = useState(initialEvent ?? (events.length === 1 ? events[0].slug : ""));
+  const [stayOnly, setStayOnly] = useState(initialStay && !initialEvent);
+  const [eventSlug, setEventSlug] = useState(initialEvent ?? (events.length === 1 && !initialStay ? events[0].slug : ""));
   const [name, setName] = useState(member?.name ?? "");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -61,9 +64,9 @@ export default function PassBooking({
   const [sameWa, setSameWa] = useState(true);
   const [email, setEmail] = useState(member?.email ?? "");
   const [guests, setGuests] = useState(1);
-  const [wantsStay, setWantsStay] = useState(false);
-  const [stayFrom, setStayFrom] = useState("");
-  const [stayTo, setStayTo] = useState("");
+  const [wantsStay, setWantsStay] = useState(initialStay && !initialEvent);
+  const [stayFrom, setStayFrom] = useState(initialStay && !initialEvent ? addDaysISO(todayISO(), 1) : "");
+  const [stayTo, setStayTo] = useState(initialStay && !initialEvent ? addDaysISO(todayISO(), 4) : "");
   const [city, setCity] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [busy, setBusy] = useState(false);
@@ -72,7 +75,20 @@ export default function PassBooking({
 
   const event = events.find((e) => e.slug === eventSlug) ?? null;
 
+  const chooseStayOnly = () => {
+    setStayOnly(true);
+    setEventSlug("");
+    setWantsStay(true);
+    setError(null);
+    if (!stayFrom) {
+      setStayFrom(addDaysISO(todayISO(), 1));
+      setStayTo(addDaysISO(todayISO(), 4));
+    }
+    setTimeout(() => document.getElementById("pass-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+
   const choose = (slug: string) => {
+    setStayOnly(false);
     setEventSlug(slug);
     setError(null);
     const e = events.find((x) => x.slug === slug);
@@ -95,7 +111,7 @@ export default function PassBooking({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!event || busy) return;
+    if ((!event && !stayOnly) || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -105,7 +121,7 @@ export default function PassBooking({
         for (const k of ["utm_source", "utm_medium", "utm_campaign"]) if (sp.get(k)) utm[k] = sp.get(k)!;
       } catch {}
       const res = await submitPass({
-        eventSlug: event.slug,
+        eventSlug: event?.slug,
         name,
         age: Number(age),
         gender,
@@ -113,7 +129,7 @@ export default function PassBooking({
         whatsapp: sameWa ? phone : whats,
         email,
         guestsCount: guests,
-        stay: wantsStay ? { from: stayFrom, to: stayTo, city } : null,
+        stay: wantsStay || stayOnly ? { from: stayFrom, to: stayTo, city } : null,
         utm,
         honeypot,
       });
@@ -138,8 +154,9 @@ export default function PassBooking({
         </div>
         <h2 className="display-md mt-6">Shukriya, {name.split(" ")[0]}!</h2>
         <p className="text-ink-soft mt-3 max-w-md mx-auto leading-relaxed">
-          Your {done.what} request is in{done.stay ? ", and so is your stay request" : ""}. Our team will call or
-          WhatsApp you shortly to confirm and take payment.
+          {done.what === "Stay request"
+            ? "Your stay request is in. Our team will WhatsApp you shortly with the price and availability."
+            : `Your ${done.what} request is in${done.stay ? ", and so is your stay request" : ""}. Our team will call or WhatsApp you shortly to confirm and take payment.`}
         </p>
         <p className="font-display font-extrabold text-3xl md:text-4xl tracking-tight mt-5 select-all">{done.reference}</p>
         <div className="grid sm:grid-cols-3 gap-3 mt-8 text-left">
@@ -219,6 +236,28 @@ export default function PassBooking({
             </div>
           );
         })}
+        <div
+          id="stay"
+          className={cx(
+            "scroll-mt-28 rounded-3xl border p-6 md:p-7 transition-colors",
+            stayOnly ? "border-ink bg-mist" : "border-line bg-paper"
+          )}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
+            <div className="flex-1">
+              <h2 className="font-display font-bold text-2xl tracking-tight inline-flex items-center gap-2">
+                <Home size={20} /> Sirf rehna hai?
+              </h2>
+              <p className="text-[14.5px] text-ink-soft mt-2 leading-relaxed">
+                Bunks and private rooms at the Colony. Send a stay request with your dates and we&apos;ll
+                WhatsApp you the price and availability.
+              </p>
+            </div>
+            <button type="button" onClick={chooseStayOnly} className={cx("btn shrink-0", stayOnly ? "btn-outline" : "btn-primary")}>
+              {stayOnly ? <><Check size={15} /> Selected</> : <>Request a stay <ArrowRight size={15} /></>}
+            </button>
+          </div>
+        </div>
         {events.length === 0 && (
           <p className="rounded-2xl bg-mist p-6 text-sm text-center">
             No workshop is open for booking right now.{" "}
@@ -235,11 +274,11 @@ export default function PassBooking({
       </div>
 
       {/* Step 2: the form */}
-      {event && (
+      {(event || stayOnly) && (
         <form id="pass-form" onSubmit={submit} className="scroll-mt-28 mt-6 rounded-3xl border border-line bg-paper p-6 md:p-8">
           <p className="kicker text-ink-soft">Your details</p>
           <p className="font-semibold mt-2">
-            {event.title} · {event.ticketPkr > 0 ? `${pkr(event.ticketPkr)} per person` : "Free"}
+            {event ? `${event.title} · ${event.ticketPkr > 0 ? `${pkr(event.ticketPkr)} per person` : "Free"}` : "Stay request · price shared on WhatsApp"}
           </p>
 
           <div className="grid sm:grid-cols-2 gap-3 mt-4">
@@ -300,9 +339,9 @@ export default function PassBooking({
                 <Home size={19} />
               </span>
               <div className="flex-1">
-                <p className="font-display font-bold text-xl tracking-tight">Door shehar se aa rahe ho?</p>
+                <p className="font-display font-bold text-xl tracking-tight">{stayOnly ? "Kab aa rahe ho?" : "Door shehar se aa rahe ho?"}</p>
                 <p className={cx("text-[14.5px] mt-2 leading-relaxed", wantsStay ? "text-paper/75" : "text-ink-soft")}>
-                  Hotel dhoondne ki tension chhoro. Workshop ke din hamare ghar, Content Colony mein raho:
+                  Hotel dhoondne ki tension chhoro. {stayOnly ? "Kuch din" : "Workshop ke din"} hamare ghar, Content Colony mein raho:
                   subah ki chai, raat ki gup-shup, aur apne jaise creators ke saath. Ajnabi ban kar aao, dost ban kar jao.
                 </p>
                 {!wantsStay ? (
@@ -328,9 +367,11 @@ export default function PassBooking({
                     <p className="text-[13px] text-paper/70">
                       This is just a request. Our team will share the details and confirm your bed on the call.
                     </p>
-                    <button type="button" onClick={() => setWantsStay(false)} className="text-[12.5px] underline underline-offset-2 text-paper/70">
-                      No thanks, just the workshop
-                    </button>
+                    {!stayOnly && (
+                      <button type="button" onClick={() => setWantsStay(false)} className="text-[12.5px] underline underline-offset-2 text-paper/70">
+                        No thanks, just the workshop
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -340,14 +381,14 @@ export default function PassBooking({
           <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-line pt-5">
             <div className="text-sm">
               <p className="font-semibold">
-                {event.ticketPkr > 0 ? `${pkr(event.ticketPkr * guests)}` : "Free entry"}
-                {wantsStay ? " + stay request" : ""}
+                {event ? (event.ticketPkr > 0 ? `${pkr(event.ticketPkr * guests)}` : "Free entry") : "Stay request"}
+                {event && wantsStay ? " + stay request" : ""}
               </p>
               <p className="text-ink-soft text-[12.5px] mt-0.5">Nothing to pay now. We confirm by phone / WhatsApp.</p>
             </div>
             <button type="submit" disabled={busy} className="btn btn-primary">
               {busy ? <Loader2 size={16} className="animate-spin" /> : null}
-              {wantsStay ? "Book pass + request stay" : "Book my pass"} <ArrowRight size={16} />
+              {!event ? "Send stay request" : wantsStay ? "Book pass + request stay" : "Book my pass"} <ArrowRight size={16} />
             </button>
           </div>
           {error && <p className="mt-3 text-sm font-medium">{error}</p>}

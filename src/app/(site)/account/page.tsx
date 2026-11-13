@@ -51,7 +51,7 @@ export default async function AccountPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/stay#book" className="btn !bg-paper !text-ink">Book a stay <ArrowRight size={16} /></Link>
+            <Link href="/book?stay=1#stay" className="btn !bg-paper !text-ink">Book a stay <ArrowRight size={16} /></Link>
             <Link href="/events" className="btn btn-outline !border-paper/40 !text-paper">See events</Link>
           </div>
         </div>

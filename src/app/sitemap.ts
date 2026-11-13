@@ -5,7 +5,7 @@ import { ne } from "drizzle-orm";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.SITE_URL ?? "http://localhost:3000";
-  const staticRoutes = ["", "/stay", "/events", "/community", "/journal", "/about", "/contact", "/neighborhood", "/host-event", "/booking"].map((p) => ({
+  const staticRoutes = ["", "/book", "/events", "/community", "/journal", "/about", "/contact", "/neighborhood", "/host-event", "/booking"].map((p) => ({
     url: `${base}${p}`,
     changeFrequency: "weekly" as const,
     priority: p === "" ? 1 : 0.7,

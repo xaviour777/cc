@@ -27,7 +27,7 @@ function Row({ p, eventTitle }: { p: Pass; eventTitle: string | null }) {
             <span className="font-mono text-[12px] text-ink-soft">· {p.reference}</span>
           </p>
           <p className="text-[13px] mt-0.5">
-            {eventTitle ?? "Community Day Pass"} · {formatDate(p.visitDate)} · {p.guestsCount} {p.guestsCount === 1 ? "guest" : "guests"}
+            {eventTitle ?? "Stay request"} · {formatDate(p.visitDate)} · {p.guestsCount} {p.guestsCount === 1 ? "guest" : "guests"}
             {p.amountPkr > 0 ? ` · ${pkr(p.amountPkr)}` : ""}
             {p.paidPkr > 0 ? ` · paid ${pkr(p.paidPkr)}` : ""}
           </p>
@@ -103,7 +103,7 @@ export default async function PassesPage() {
     <div>
       <h1 className="font-display font-extrabold text-3xl tracking-tight">Passes</h1>
       <p className="text-sm text-ink-soft mt-1">
-        Workshop passes from <Link className="underline" href="/book">/book</Link>. Call or
+        Workshop passes and stay requests from <Link className="underline" href="/book">/book</Link>. Call or
         WhatsApp each new request, take payment, then press Confirm. Guests add ID from their email link; check them in at the door.
       </p>
       {!ghlConfigured() && (

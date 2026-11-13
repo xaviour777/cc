@@ -39,7 +39,7 @@ export default async function PassPage({
     );
   }
   const ev = p.eventId ? (await db.select().from(events).where(eq(events.id, p.eventId)).limit(1))[0] : null;
-  const what = ev ? ev.title : "Content Colony pass";
+  const what = ev ? ev.title : "Stay request";
 
   return (
     <div className="px-5 md:px-10 py-14 md:py-20">
