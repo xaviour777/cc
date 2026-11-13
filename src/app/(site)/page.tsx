@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpRight,
-  BadgePercent,
   BedDouble,
   CalendarHeart,
   ChefHat,
@@ -18,7 +17,7 @@ import {
 } from "lucide-react";
 import { IMG, CREATORS } from "@/lib/images";
 import { getArticles, getPublicEvents, getSocialPosts, getStayProducts } from "@/lib/data";
-import { getMinStayNights, getSetting } from "@/lib/stays";
+import { getMinStayNights } from "@/lib/stays";
 import { pkr } from "@/lib/utils";
 import Reveal from "@/components/ui/reveal";
 import EventCard from "@/components/site/event-card";
@@ -27,13 +26,12 @@ import ReelGrid from "@/components/site/reel-grid";
 import JoinForm from "@/components/forms/join-form";
 
 export default async function HomePage() {
-  const [products, events, articlesList, reels, minStay, discount] = await Promise.all([
+  const [products, events, articlesList, reels, minStay] = await Promise.all([
     getStayProducts(),
     getPublicEvents(),
     getArticles("en", 3),
     getSocialPosts(),
     getMinStayNights(),
-    getSetting<number>("residentDiscountPct", 25),
   ]);
   // Stays are request-only for now: prices are shared on WhatsApp.
   const hidePrices = true;
@@ -261,18 +259,6 @@ export default async function HomePage() {
               </Reveal>
             ))}
           </div>
-          <Reveal className="mt-8">
-            <div className="rounded-2xl border border-line bg-paper p-5 flex flex-wrap items-center gap-x-6 gap-y-2 justify-between">
-              <p className="text-sm text-ink-soft leading-relaxed max-w-2xl">
-                <span className="font-semibold text-ink">Optional paid extras, always clearly priced:</span>{" "}
-                specialised workshops &amp; bootcamps. Residents always save {discount}% — verified
-                against your stay, never self-declared.
-              </p>
-              <span className="inline-flex items-center gap-2 text-sm font-semibold">
-                <BadgePercent size={16} /> {discount}% resident discount
-              </span>
-            </div>
-          </Reveal>
         </div>
       </section>
 
