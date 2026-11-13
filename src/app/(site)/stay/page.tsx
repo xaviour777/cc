@@ -65,6 +65,10 @@ export default async function StayPage() {
           <a href="#book" className="btn btn-primary mt-8">
             Check real availability <ArrowDown size={15} />
           </a>
+          <p className="text-sm text-ink-soft mt-4">
+            Just coming for a day or a workshop?{" "}
+            <a href="/book" className="u-link font-medium text-ink">Book a pass in one minute</a>
+          </p>
         </Reveal>
 
         {/* Accommodation cards */}

@@ -64,11 +64,11 @@ export default async function HomePage() {
           </Reveal>
           <Reveal delay={220}>
             <div className="flex flex-wrap justify-center gap-3 mt-8">
-              <Link href="/stay#book" className="btn btn-primary">
-                Find Your Stay <ArrowRight size={16} />
+              <Link href="/book" className="btn btn-primary">
+                Book a Day or Workshop Pass <ArrowRight size={16} />
               </Link>
-              <Link href="/events" className="btn btn-outline">
-                See What&apos;s Happening
+              <Link href="/stay#book" className="btn btn-outline">
+                Find Your Stay
               </Link>
             </div>
           </Reveal>

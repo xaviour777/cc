@@ -152,6 +152,10 @@ export async function submitBooking(input: {
       result.pricePending ? "pre-booking, price to agree" : `PKR ${result.totalPkr}`
     }`,
     utm: input.utm ?? null,
+    opportunity: {
+      name: `${input.guestName} — ${input.accommodationKey === "SHARED_BUNK" ? "Bunk" : "Private room"} stay (${input.checkIn}, ${result.nights} nights)`,
+      monetaryValue: result.totalPkr,
+    },
   });
   await recordNotification({
     channel: "EMAIL",

@@ -1,0 +1,40 @@
+CREATE TABLE "passes" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"reference" text NOT NULL,
+	"kind" text DEFAULT 'DAY_PASS' NOT NULL,
+	"event_id" integer,
+	"registration_id" integer,
+	"visit_date" date NOT NULL,
+	"name" text NOT NULL,
+	"age" integer,
+	"phone" text NOT NULL,
+	"whatsapp" text NOT NULL,
+	"email" text NOT NULL,
+	"city" text,
+	"guests_count" integer DEFAULT 1 NOT NULL,
+	"amount_pkr" integer DEFAULT 0 NOT NULL,
+	"paid_pkr" integer DEFAULT 0 NOT NULL,
+	"payment_method" text,
+	"status" text DEFAULT 'PENDING' NOT NULL,
+	"wants_stay" boolean DEFAULT false NOT NULL,
+	"stay_key" text,
+	"stay_nights" integer,
+	"stay_booking_ref" text,
+	"kyc_doc_type" text,
+	"kyc_id_last4" text,
+	"kyc_file_path" text,
+	"kyc_file_name" text,
+	"kyc_mime" text,
+	"kyc_uploaded_at" timestamp with time zone,
+	"checked_in_at" timestamp with time zone,
+	"confirmed_at" timestamp with time zone,
+	"notes" text,
+	"utm" jsonb,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "passes_reference_unique" UNIQUE("reference")
+);
+--> statement-breakpoint
+ALTER TABLE "passes" ADD CONSTRAINT "passes_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "passes_date_idx" ON "passes" USING btree ("visit_date");--> statement-breakpoint
+CREATE INDEX "passes_status_idx" ON "passes" USING btree ("status");

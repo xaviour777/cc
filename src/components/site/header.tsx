@@ -88,8 +88,8 @@ export default function Header() {
             <Link href="/account" className="text-sm font-medium hover:underline underline-offset-4 hidden lg:inline">
               My account
             </Link>
-            <Link href="/stay#book" className="btn btn-primary !py-2.5 !px-5 text-sm hidden sm:inline-flex">
-              Find Your Stay
+            <Link href="/book" className="btn btn-primary !py-2.5 !px-5 text-sm hidden sm:inline-flex">
+              Book Now
               <ArrowUpRight size={15} />
             </Link>
             <button
@@ -139,8 +139,8 @@ export default function Header() {
           ))}
         </nav>
         <div className="p-8">
-          <Link href="/stay#book" className="btn btn-primary w-full">
-            Find Your Stay <ArrowUpRight size={16} />
+          <Link href="/book" className="btn btn-primary w-full">
+            Book Now <ArrowUpRight size={16} />
           </Link>
           <Link href="/account" className="btn btn-outline w-full mt-3">
             My account

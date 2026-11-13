@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowRight,
   ArrowUpRight,
   BadgePercent,
   CalendarDays,
@@ -17,9 +18,8 @@ import { getSetting } from "@/lib/stays";
 import { db } from "@/db";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { articles, articleTranslations } from "@/db/schema";
-import { formatDate, pkr } from "@/lib/utils";
+import { formatDate, pkr, todayISO } from "@/lib/utils";
 import Reveal from "@/components/ui/reveal";
-import EventRegisterForm from "@/components/events/register-form";
 
 export async function generateMetadata({
   params,
@@ -207,7 +207,13 @@ export default async function EventDetailPage({
                   <div className="h-1.5 rounded-full bg-mist overflow-hidden">
                     <div className="h-full bg-ink rounded-full transition-all" style={{ width: `${pctTaken}%` }} />
                   </div>
-                  <EventRegisterForm eventSlug={event.slug} ticketPkr={event.ticketPkr} discountPct={discount} />
+                  {event.status === "PUBLISHED" && seatsLeft > 0 && (!event.startDate || event.startDate >= todayISO()) ? (
+                    <Link href={`/book?event=${event.slug}`} className="btn btn-primary w-full mt-2">
+                      Book your pass <ArrowRight size={16} />
+                    </Link>
+                  ) : (
+                    <p className="text-sm text-ink-soft mt-2">Booking is closed for this one.</p>
+                  )}
                 </div>
               </div>
             </Reveal>

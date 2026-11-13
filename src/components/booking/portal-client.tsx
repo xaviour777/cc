@@ -59,7 +59,7 @@ export function PortalVerify({ reference }: { reference: string }) {
 // ---------- KYC upload ----------
 // Phone photos are often 3-8 MB; the server accepts up to 4 MB, so large
 // images are scaled down to 2000px JPEG in the browser first.
-async function shrinkImage(file: File): Promise<File> {
+export async function shrinkImage(file: File): Promise<File> {
   if (!file.type.startsWith("image/") || file.size < 1.5 * 1024 * 1024) return file;
   try {
     const bitmap = await createImageBitmap(file);
