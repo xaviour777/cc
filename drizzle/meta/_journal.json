@@ -22,6 +22,13 @@
       "when": 1793819802979,
       "tag": "0002_members_coupons",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794590767253,
+      "tag": "0003_passes",
+      "breakpoints": true
     }
   ]
 }

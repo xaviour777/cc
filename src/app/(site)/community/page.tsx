@@ -150,8 +150,8 @@ export default async function CommunityPage() {
             <Sofa className="mx-auto text-paper/50" size={22} />
             <h2 className="display-lg mt-5">The couch has a spot with your name on it.</h2>
             <div className="flex flex-wrap justify-center gap-3 mt-8">
-              <Link href="/stay#book" className="btn bg-paper text-ink hover:opacity-90">
-                Find Your Stay <ArrowRight size={15} />
+              <Link href="/book" className="btn bg-paper text-ink hover:opacity-90">
+                Book a Pass <ArrowRight size={15} />
               </Link>
               <Link href="/events" className="btn border border-paper/30 text-paper hover:border-paper">
                 See events

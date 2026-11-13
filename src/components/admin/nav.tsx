@@ -17,6 +17,7 @@ import {
   Loader2,
   LogOut,
   Settings,
+  Ticket,
   SwitchCamera,
   TicketPercent,
   UserRound,
@@ -29,6 +30,7 @@ import { ColonyMark } from "@/components/ui/icons";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", Icon: LayoutDashboard },
+  { href: "/admin/passes", label: "Passes", Icon: Ticket },
   { href: "/admin/bookings", label: "Bookings", Icon: BedDouble },
   { href: "/admin/guests", label: "Guests", Icon: Users },
   { href: "/admin/rooms", label: "Rooms & Beds", Icon: SwitchCamera },

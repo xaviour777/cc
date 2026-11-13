@@ -584,6 +584,51 @@ export const socialPosts = pgTable("social_posts", {
     .defaultNow(),
 });
 
+// ---------- Passes: community day pass + workshop / event passes ----------
+// Simple bookings that the team confirms by phone/WhatsApp. Payment is taken
+// manually, the guest adds ID before arriving, and admin checks them in.
+export const passes = pgTable(
+  "passes",
+  {
+    id: serial("id").primaryKey(),
+    reference: text("reference").notNull().unique(),
+    kind: text("kind").notNull().default("DAY_PASS"), // DAY_PASS | EVENT
+    eventId: integer("event_id").references(() => events.id, { onDelete: "set null" }),
+    registrationId: integer("registration_id"),
+    visitDate: date("visit_date", { mode: "string" }).notNull(),
+    name: text("name").notNull(),
+    age: integer("age"),
+    gender: text("gender"),
+    phone: text("phone").notNull(),
+    whatsapp: text("whatsapp").notNull(),
+    email: text("email").notNull(),
+    city: text("city"),
+    guestsCount: integer("guests_count").notNull().default(1),
+    amountPkr: integer("amount_pkr").notNull().default(0),
+    paidPkr: integer("paid_pkr").notNull().default(0),
+    paymentMethod: text("payment_method"),
+    status: text("status").notNull().default("PENDING"), // PENDING | CONFIRMED | CHECKED_IN | CANCELLED
+    // Optional stay request for guests coming from other cities (team quotes on call)
+    wantsStay: boolean("wants_stay").notNull().default(false),
+    stayFrom: date("stay_from", { mode: "string" }),
+    stayTo: date("stay_to", { mode: "string" }),
+    // ID check before check-in
+    kycDocType: text("kyc_doc_type"),
+    kycIdLast4: text("kyc_id_last4"),
+    kycFilePath: text("kyc_file_path"),
+    kycFileName: text("kyc_file_name"),
+    kycMime: text("kyc_mime"),
+    kycUploadedAt: timestamp("kyc_uploaded_at", { withTimezone: true }),
+    checkedInAt: timestamp("checked_in_at", { withTimezone: true }),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    notes: text("notes"),
+    utm: jsonb("utm").$type<Record<string, string>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("passes_date_idx").on(t.visitDate), index("passes_status_idx").on(t.status)]
+);
+
 // ---------- Settings / integrations ----------
 export const siteSettings = pgTable("site_settings", {
   key: text("key").primaryKey(),
@@ -660,6 +705,7 @@ export const accountTokens = pgTable("account_tokens", {
 
 // ---------- Types ----------
 export type Coupon = typeof coupons.$inferSelect;
+export type Pass = typeof passes.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type RatePlan = typeof ratePlans.$inferSelect;
 export type Event = typeof events.$inferSelect;

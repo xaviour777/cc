@@ -14,7 +14,7 @@ export default function BookingIndexPage() {
         <BookingLookupForm />
       </Reveal>
       <p className="text-center text-sm text-ink-soft mt-8">
-        New here? <a href="/stay#book" className="u-link font-medium">Find your stay</a> first.
+        New here? <a href="/book" className="u-link font-medium">Book a pass or stay</a> first.
       </p>
     </div>
   );
