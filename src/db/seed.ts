@@ -78,7 +78,7 @@ async function main() {
       slug: "shared-bunk",
       tagline: "Your own bunk in a room of four future friends.",
       description:
-        "A private-feeling bunk with a curtain, reading light, shelf and locker, in a shared room of four. You get full access to the coworking lounge, production studio, call pod, kitchen, entertainment area and every free community meetup.",
+        "A private-feeling bunk with a curtain, reading light, shelf and locker, in a shared room of four. You get full access to the coworking lounge, production studio, soundproof meeting pod, kitchen, entertainment area and every free community meetup.",
       image: IMG.bunkRoom,
       features: [
         "Personal bunk with privacy curtain",
@@ -96,7 +96,7 @@ async function main() {
       slug: "private-room",
       tagline: "A room of your own, a colony outside the door.",
       description:
-        "Your own lockable, quiet room for deep work and deep sleep — with the entire colony (coworking, studio, call pod, kitchen, lounge, entertainment area, meetups) still included.",
+        "Your own lockable, quiet room for deep work and deep sleep — with the entire colony (coworking, studio, soundproof meeting pod, kitchen, lounge, entertainment area, meetups) still included.",
       image: IMG.privateRoom,
       features: [
         "Lockable private room",
@@ -379,13 +379,13 @@ async function main() {
           "",
           "## A home that behaves like a community",
           "",
-          "Content Colony is built around a feeling, not a floor plan. Yes, there are eight bunks, three private rooms, a coworking lounge and a studio. But the real product is the dinner table on Fridays, the 2 AM edit session with someone you met that morning, the movie night where the projector is loud and the commentary is louder.",
+          "Content Colony is built around a feeling, not a floor plan. Yes, there are eight bunks, four private rooms, a coworking lounge and a studio. But the real product is the dinner table on Fridays, the 2 AM edit session with someone you met that morning, the movie night where the projector is loud and the commentary is louder.",
           "",
           "> Come as a stranger. Create as a friend.",
           "",
           "## What we include — and what we don't pretend to",
           "",
-          "Every resident gets the coworking lounge, high-speed Wi-Fi, the shared studio (bookable), the call pod, the kitchen and every free meetup. Paid workshops are optional, and residents always get a discount — because learning together is the point.",
+          "Every resident gets the coworking lounge, high-speed Wi-Fi, the shared studio (bookable), the soundproof meeting pod, the kitchen and every free meetup. Paid workshops are optional, and residents always get a discount — because learning together is the point.",
           "",
           "We are not a hotel. We check IDs because a community is a responsibility. We write agreements because trust deserves paper. And we keep prices honest because creators have enough invoices already.",
           "",
@@ -524,7 +524,7 @@ async function main() {
         "1. COMMUNITY. The Colony is a shared creative home. Residents respect quiet hours (11 PM – 8 AM), shared spaces, equipment and each other.",
         "2. IDENTITY. The Resident provides a valid CNIC / NICOP / passport copy for legal registration, stored securely and visible only to authorised administration.",
         "3. PAYMENT. The total shown at booking is payable by the selected method. Longer-stay packages apply exactly as displayed.",
-        "4. STUDIO & EQUIPMENT. The studio and call pod are booked by slot. Damage to shared equipment is chargeable.",
+        "4. STUDIO & EQUIPMENT. The studio and soundproof meeting pod are booked by slot. Damage to shared equipment is chargeable.",
         "5. CANCELLATION. Cancellations before check-in are reviewed against our refund policy; confirmed payments are refunded per admin review.",
         "6. COMPLIANCE. Guest details are processed for Punjab temporary-resident / Hotel Eye reporting through our manual compliance workflow until official integrations are authorised.",
         "",

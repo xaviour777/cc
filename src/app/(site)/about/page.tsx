@@ -48,7 +48,7 @@ export default async function AboutPage() {
               everyone human.
             </p>
             <p>
-              We keep it small on purpose. Eight bunks, two rooms, one studio —
+              We keep it small on purpose. Eight bunks, four private rooms, one studio —
               because community doesn&apos;t scale by headcount, it scales by trust.
             </p>
           </Reveal>
@@ -94,7 +94,7 @@ export default async function AboutPage() {
             Your people are <span className="serif-em normal-case">here.</span>
           </h2>
           <div className="flex flex-wrap justify-center gap-3 mt-8">
-            <Link href="/book?stay=1#stay" className="btn btn-primary">
+            <Link href="/stay" className="btn btn-primary">
               Find Your Stay <ArrowRight size={15} />
             </Link>
             <Link href="/contact" className="btn btn-outline">Say salam first</Link>

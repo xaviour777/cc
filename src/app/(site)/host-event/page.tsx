@@ -33,7 +33,7 @@ export default function HostEventPage() {
                 "Submit without an account — proposals go straight to our team",
                 "Only admin-approved events are ever published",
                 "If approved, we handle listings, tickets and resident discounts",
-                "Coworking lounge, studio and call pod available to hosts",
+                "Coworking lounge, studio and soundproof meeting pod available to hosts",
               ].map((t) => (
                 <li key={t} className="flex gap-3 text-[15px] text-ink-soft leading-relaxed">
                   <Check size={16} className="shrink-0 mt-1" /> {t}

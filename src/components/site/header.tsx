@@ -8,7 +8,6 @@ import { cx } from "@/lib/utils";
 import { ColonyMark, ColonyWordmark } from "@/components/ui/icons";
 
 const NAV = [
-  { href: "/book?stay=1#stay", label: "Stay" },
   { href: "/events", label: "Events" },
   { href: "/community", label: "Community" },
   { href: "/journal", label: "Journal" },

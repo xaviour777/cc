@@ -22,7 +22,7 @@ export type PassInput = {
   email: string;
   guestsCount: number;
   /** Optional stay request: just dates, the team quotes on the call. */
-  stay?: { from: string; to: string; city?: string } | null;
+  stay?: { from: string; to: string; city?: string; room?: string; pitch?: string } | null;
   utm?: Record<string, string>;
   honeypot?: string;
 };
@@ -42,12 +42,13 @@ export async function submitPass(input: PassInput) {
   if (digits(whatsapp).length < 10) return { ok: false as const, error: "Please enter a valid WhatsApp number." };
   if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false as const, error: "Please enter a valid email address." };
 
-  let stay: { from: string; to: string; city: string | null } | null = null;
+  let stay: { from: string; to: string; city: string | null; room: string | null; pitch: string | null } | null = null;
   if (input.stay) {
     const { from, to } = input.stay;
     if (!isISODate(from) || !isISODate(to) || from < todayISO() || to <= from)
       return { ok: false as const, error: "Please choose your stay dates (arrival before departure)." };
-    stay = { from, to, city: input.stay.city?.trim() || null };
+    const room = input.stay.room === "Private Room" || input.stay.room === "Bunker" ? input.stay.room : null;
+    stay = { from, to, city: input.stay.city?.trim() || null, room, pitch: input.stay.pitch?.trim().slice(0, 1000) || null };
   }
 
   // No workshop chosen = a stay-only request (price shared on WhatsApp later).
@@ -100,12 +101,17 @@ export async function submitPass(input: PassInput) {
       wantsStay: Boolean(stay),
       stayFrom: stay?.from ?? null,
       stayTo: stay?.to ?? null,
+      notes: stay && (stay.room || stay.pitch)
+        ? [stay.room ? `Room: ${stay.room}` : null, stay.pitch ? `Building: ${stay.pitch}` : null].filter(Boolean).join("\n")
+        : null,
       utm: input.utm && Object.keys(input.utm).length ? input.utm : null,
     })
     .returning();
 
   const what = event ? `${event.title} pass` : "Stay request";
-  const stayLine = stay ? `${stay.from} to ${stay.to} (${nightsBetween(stay.from, stay.to)} nights)${stay.city ? `, coming from ${stay.city}` : ""}` : "";
+  const stayLine = stay
+    ? `${stay.from} to ${stay.to} (${nightsBetween(stay.from, stay.to)} nights)${stay.room ? `, ${stay.room}` : ""}${stay.city ? `, coming from ${stay.city}` : ""}`
+    : "";
   const portal = `${siteUrl()}/pass/${reference}?email=${encodeURIComponent(email)}`;
   const waNumber = digits(whatsapp).replace(/^0/, "92");
 
@@ -141,6 +147,7 @@ export async function submitPass(input: PassInput) {
       `Guests: ${guests}`,
       event ? `Amount: ${amount > 0 ? fmt(amount) : "free"}` : null,
       stay ? `Stay request: ${stayLine} — share the price on the call.` : null,
+      stay?.pitch ? `What they're building: ${stay.pitch}` : null,
       ``,
       `Open in admin: ${siteUrl()}/admin/passes`,
     ]

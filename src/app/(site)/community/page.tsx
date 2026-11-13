@@ -61,7 +61,7 @@ export default async function CommunityPage() {
           {[
             { Icon: Users, img: IMG.coworkLounge, t: "Coworking lounge", d: "Open all day, every day. Desks, chairs that don't hurt, plugs everywhere." },
             { Icon: Clapperboard, img: IMG.studioCrew, t: "Production studio", d: "Lights, backdrops, audio. Book a slot from your booking portal." },
-            { Icon: PhoneCall, img: IMG.vlogMan, t: "Meeting / call pod", d: "A private booth for client calls, podcasts and interviews." },
+            { Icon: PhoneCall, img: IMG.vlogMan, t: "Soundproof meeting pod", d: "A private space for client calls, podcasts and interviews." },
             { Icon: Gamepad2, img: IMG.gamingDuo, t: "Gaming & entertainment", d: "Console + PC titles, GTA V free-roam nights, FIFA tournaments, party games." },
             { Icon: Popcorn, img: IMG.movieCozy, t: "Movie nights", d: "The projector, the beanbags, the weekly vote on what we watch." },
             { Icon: ChefHat, img: IMG.flatbread, t: "Kitchen & weekend dinners", d: "Cook for six, learn someone's paratha technique, repeat weekly." },
