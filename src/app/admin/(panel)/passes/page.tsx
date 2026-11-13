@@ -23,11 +23,11 @@ function Row({ p, eventTitle, stayId }: { p: Pass; eventTitle: string | null; st
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1 min-w-60">
           <p className="font-medium">
-            {p.name} <span className="text-ink-soft font-normal">· {p.age ?? "?"} yrs</span>{" "}
+            {p.name} <span className="text-ink-soft font-normal">· {p.age ?? "?"} yrs{p.gender ? ` · ${p.gender}` : ""}</span>{" "}
             <span className="font-mono text-[12px] text-ink-soft">· {p.reference}</span>
           </p>
           <p className="text-[13px] mt-0.5">
-            {eventTitle ?? "Community Day Pass"} · {formatDate(p.visitDate)} · {p.guestsCount} {p.guestsCount === 1 ? "guest" : "guests"}
+            {eventTitle ?? "Community Day Pass"}{p.tierName ? ` · ${p.tierName}` : ""}{p.dayPass ? " (day pass)" : ""} · {formatDate(p.visitDate)} · {p.guestsCount} {p.guestsCount === 1 ? "guest" : "guests"}
             {p.amountPkr > 0 ? ` · ${pkr(p.amountPkr)}` : ""}
             {p.paidPkr > 0 ? ` · paid ${pkr(p.paidPkr)}` : ""}
           </p>
@@ -108,7 +108,7 @@ export default async function PassesPage() {
     <div>
       <h1 className="font-display font-extrabold text-3xl tracking-tight">Passes</h1>
       <p className="text-sm text-ink-soft mt-1">
-        Community day passes and workshop / event passes from <Link className="underline" href="/book">/book</Link>. Call or
+        Workshop passes (full and day passes) from <Link className="underline" href="/book">/book</Link>. Call or
         WhatsApp each new request, take payment, then press Confirm. Guests add ID from their email link; check them in at the door.
       </p>
       {!ghlConfigured() && (

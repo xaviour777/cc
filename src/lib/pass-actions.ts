@@ -16,9 +16,12 @@ const fmt = (n: number) => `PKR ${n.toLocaleString("en-PK")}`;
 export type PassInput = {
   kind: "DAY_PASS" | "EVENT";
   eventSlug?: string;
+  tierName?: string;
+  dayPass?: boolean;
   visitDate: string;
   name: string;
   age: number;
+  gender?: string;
   phone: string;
   whatsapp: string;
   email: string;
@@ -47,20 +50,42 @@ export async function submitPass(input: PassInput) {
   let visitDate = input.visitDate;
   let amount = 0;
   let event: typeof events.$inferSelect | null = null;
+  let tierName: string | null = null;
+  let tierHasStay = false;
+  let dayPass = false;
 
   if (input.kind === "EVENT") {
     const rows = await db.select().from(events).where(eq(events.slug, input.eventSlug ?? "")).limit(1);
     event = rows[0] ?? null;
     if (!event || event.status !== "PUBLISHED")
       return { ok: false as const, error: "This workshop / event is not open for booking right now." };
-    if (event.startDate && event.startDate >= todayISO()) visitDate = event.startDate;
+    // Which pass, and full workshop or a single day?
+    let price = event.ticketPkr;
+    const tiers = event.passTiers ?? [];
+    if (tiers.length) {
+      const tier = tiers.find((t) => t.name === input.tierName);
+      if (!tier) return { ok: false as const, error: "Please pick your pass." };
+      tierName = tier.name;
+      tierHasStay = tier.stay;
+      if (input.dayPass) {
+        if (!tier.dayPricePkr) return { ok: false as const, error: `${tier.name} is not available as a day pass.` };
+        price = tier.dayPricePkr;
+        dayPass = true;
+      } else price = tier.pricePkr;
+    }
+    const first = event.startDate;
+    const last = event.endDate ?? event.startDate;
+    if (dayPass && first && last) {
+      if (input.visitDate < first || input.visitDate > last)
+        return { ok: false as const, error: "Pick a day within the workshop dates." };
+    } else if (first) visitDate = first;
     const taken = await db
       .select({ count: sql<number>`count(*)` })
       .from(eventRegistrations)
       .where(and(eq(eventRegistrations.eventId, event.id), ne(eventRegistrations.status, "CANCELLED")));
     if (Number(taken[0]?.count ?? 0) + guests > event.capacity)
       return { ok: false as const, error: "Sorry, not enough seats left for this one. Try another date or event." };
-    amount = event.ticketPkr * guests;
+    amount = price * guests;
   } else {
     amount = Number(await getSetting<number>("dayPassPkr", 0)) * guests;
   }
@@ -93,9 +118,12 @@ export async function submitPass(input: PassInput) {
       kind: input.kind,
       eventId: event?.id ?? null,
       registrationId,
+      tierName,
+      dayPass,
       visitDate,
       name,
       age,
+      gender: input.gender === "Female" || input.gender === "Male" ? input.gender : null,
       phone,
       whatsapp,
       email,
@@ -111,8 +139,9 @@ export async function submitPass(input: PassInput) {
 
   // Optional stay add-on: hold a real bed/room so nobody else takes it.
   let stay: { reference: string; totalPkr: number; nights: number } | null = null;
-  let stayNote = "";
-  if (input.stay) {
+  let stayNote = tierHasStay ? `${tierName} includes stay — assign a bed for the workshop nights.` : "";
+  if (tierHasStay) await db.update(passes).set({ notes: stayNote }).where(eq(passes.id, pass.id));
+  if (input.stay && !tierHasStay) {
     const nights = Math.max(1, Math.min(30, Math.round(input.stay.nights || 3)));
     const res = await createBooking({
       accommodationKey: input.stay.key,
@@ -134,7 +163,9 @@ export async function submitPass(input: PassInput) {
     }
   }
 
-  const what = event ? `${event.title} pass` : "Community Day Pass";
+  const what = event
+    ? `${event.title} — ${tierName ?? "Pass"}${dayPass ? ` (day pass, ${visitDate})` : ""}`
+    : "Community Day Pass";
   const stayLabel = input.stay
     ? `${input.stay.key === "SHARED_BUNK" ? "Shared bunk" : "Private room"}, ${stay?.nights ?? input.stay.nights} nights from ${visitDate}`
     : "";
@@ -151,7 +182,9 @@ export async function submitPass(input: PassInput) {
     tags: [
       "content-colony",
       event ? "workshop-pass" : "day-pass",
-      ...(input.stay ? ["stay-addon"] : []),
+      ...(input.stay || tierHasStay ? ["stay-addon"] : []),
+      ...(tierName ? [tierName.toLowerCase().replace(/[^a-z0-9]+/g, "-")] : []),
+      ...(dayPass ? ["day-pass"] : []),
       ...(input.city?.trim() ? ["out-of-city"] : []),
     ],
     source: `Content Colony — ${what}`,
@@ -174,7 +207,7 @@ export async function submitPass(input: PassInput) {
       ``,
       `Reference: ${reference}`,
       `Name: ${name}`,
-      `Age: ${age}`,
+      `Age: ${age}${input.gender ? ` · ${input.gender}` : ""}`,
       `Phone: ${phone}`,
       `WhatsApp: ${whatsapp}  (https://wa.me/${waNumber})`,
       `Email: ${email}`,
@@ -225,7 +258,7 @@ export async function submitPass(input: PassInput) {
     amount,
     what,
     stay,
-    stayNote,
+    stayNote: tierHasStay ? "" : stayNote,
     portal: `/pass/${reference}?email=${encodeURIComponent(email)}`,
   };
 }

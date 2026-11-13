@@ -12,6 +12,16 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+// A pass option on a workshop, e.g. Studio Pass / Director's Cut / Residency.
+export type PassTier = {
+  name: string;
+  pricePkr: number; // full workshop
+  dayPricePkr: number | null; // single-day pass price, null = no day pass
+  includes: string; // short line shown on the card
+  note: string; // e.g. "Men only", "No food · No stay"
+  stay: boolean; // includes overnight stay
+};
+
 // ---------- Enums ----------
 export const roleEnum = pgEnum("role", ["ADMIN", "USER"]);
 export const accommodationKeyEnum = pgEnum("accommodation_key", [
@@ -424,6 +434,7 @@ export const events = pgTable(
     status: eventStatusEnum("status").notNull().default("DRAFT"),
     featured: boolean("featured").notNull().default(false),
     complianceNote: text("compliance_note"),
+    passTiers: jsonb("pass_tiers").$type<PassTier[]>().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -595,9 +606,12 @@ export const passes = pgTable(
     kind: text("kind").notNull().default("DAY_PASS"), // DAY_PASS | EVENT
     eventId: integer("event_id").references(() => events.id, { onDelete: "set null" }),
     registrationId: integer("registration_id"),
+    tierName: text("tier_name"),
+    dayPass: boolean("day_pass").notNull().default(false),
     visitDate: date("visit_date", { mode: "string" }).notNull(),
     name: text("name").notNull(),
     age: integer("age"),
+    gender: text("gender"),
     phone: text("phone").notNull(),
     whatsapp: text("whatsapp").notNull(),
     email: text("email").notNull(),

@@ -4,9 +4,12 @@ CREATE TABLE "passes" (
 	"kind" text DEFAULT 'DAY_PASS' NOT NULL,
 	"event_id" integer,
 	"registration_id" integer,
+	"tier_name" text,
+	"day_pass" boolean DEFAULT false NOT NULL,
 	"visit_date" date NOT NULL,
 	"name" text NOT NULL,
 	"age" integer,
+	"gender" text,
 	"phone" text NOT NULL,
 	"whatsapp" text NOT NULL,
 	"email" text NOT NULL,
@@ -35,6 +38,7 @@ CREATE TABLE "passes" (
 	CONSTRAINT "passes_reference_unique" UNIQUE("reference")
 );
 --> statement-breakpoint
+ALTER TABLE "events" ADD COLUMN "pass_tiers" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
 ALTER TABLE "passes" ADD CONSTRAINT "passes_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "passes_date_idx" ON "passes" USING btree ("visit_date");--> statement-breakpoint
 CREATE INDEX "passes_status_idx" ON "passes" USING btree ("status");

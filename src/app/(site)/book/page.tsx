@@ -1,27 +1,26 @@
 import type { Metadata } from "next";
 import { getPublicEvents, getStayProducts } from "@/lib/data";
-import { getHidePrices, getMinStayNights, getSetting, getWhatsappNumber } from "@/lib/stays";
+import { getHidePrices, getMinStayNights, getWhatsappNumber } from "@/lib/stays";
 import { getMember } from "@/lib/members";
 import Reveal from "@/components/ui/reveal";
 import PassBooking from "@/components/booking/pass-booking";
 import { todayISO } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Book — day pass, workshop pass or stay",
+  title: "Book a Pass — workshops, day passes and stays",
   description:
-    "Book a Community Day Pass or a workshop / event pass at Content Colony in one simple form. Coming from another city? Stay with us for 3 nights.",
+    "Book a Content Colony workshop pass (full or single day) in one simple form. Coming from another city? Stay with us.",
 };
 
 export default async function BookPage({
   searchParams,
 }: {
-  searchParams: Promise<{ event?: string; type?: string }>;
+  searchParams: Promise<{ event?: string }>;
 }) {
   const sp = await searchParams;
   const today = todayISO();
-  const [allEvents, dayPassPkr, products, hidePrices, minStay, whatsapp, member] = await Promise.all([
+  const [allEvents, products, hidePrices, minStay, whatsapp, member] = await Promise.all([
     getPublicEvents(),
-    getSetting<number>("dayPassPkr", 0),
     getStayProducts(),
     getHidePrices(),
     getMinStayNights(),
@@ -35,7 +34,10 @@ export default async function BookPage({
       title: e.title,
       kind: e.kind,
       startDate: e.startDate,
+      endDate: e.endDate,
       timeLabel: e.timeLabel,
+      excerpt: e.excerpt,
+      tiers: e.passTiers ?? [],
       ticketPkr: e.ticketPkr,
       seatsLeft: Math.max(0, e.capacity - e.seatsTaken),
     }));
@@ -53,23 +55,21 @@ export default async function BookPage({
         <Reveal className="text-center">
           <p className="kicker text-ink-soft">Book</p>
           <h1 className="display-lg mt-4">
-            Come spend a day
+            Book your pass.
             <br />
-            <span className="serif-em normal-case">with your people.</span>
+            <span className="serif-em normal-case">Meet your people.</span>
           </h1>
           <p className="lede mt-5">
-            Pick a pass, fill one short form, and our team will call or WhatsApp you to
-            confirm. No account, no payment online.
+            Pick a workshop, choose your pass (full or one day), fill one short form. Our team
+            calls you on WhatsApp to confirm. No payment now.
           </p>
         </Reveal>
         <div className="mt-12">
           <PassBooking
             events={events}
-            dayPassPkr={Number(dayPassPkr) || 0}
             stays={stays}
             minStay={minStay}
             whatsapp={whatsapp}
-            initialKind={initialEvent ? "EVENT" : sp.type === "day" ? "DAY_PASS" : null}
             initialEvent={initialEvent}
             member={member ? { name: member.name, email: member.email, phone: member.phone ?? "" } : null}
           />

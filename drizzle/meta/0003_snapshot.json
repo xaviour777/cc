@@ -1,5 +1,5 @@
 {
-  "id": "6da6506c-c13f-4dfa-a0e9-861c8c90a7c0",
+  "id": "82d5c188-bf79-4420-b209-691099aec4e8",
   "prevId": "56df64ae-6a29-4a11-af97-44eb0c368bca",
   "version": "7",
   "dialect": "postgresql",
@@ -1748,6 +1748,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "pass_tiers": {
+          "name": "pass_tiers",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -2223,6 +2230,19 @@
           "primaryKey": false,
           "notNull": false
         },
+        "tier_name": {
+          "name": "tier_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "day_pass": {
+          "name": "day_pass",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "visit_date": {
           "name": "visit_date",
           "type": "date",
@@ -2238,6 +2258,12 @@
         "age": {
           "name": "age",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gender": {
+          "name": "gender",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

@@ -7,7 +7,6 @@ import {
   BedDouble,
   CalendarDays,
   Check,
-  Coffee,
   DoorOpen,
   Home,
   Loader2,
@@ -21,41 +20,65 @@ import {
 import { submitPass } from "@/lib/pass-actions";
 import { addDaysISO, cx, formatDate, pkr, todayISO } from "@/lib/utils";
 
+type Tier = { name: string; pricePkr: number; dayPricePkr: number | null; includes: string; note: string; stay: boolean };
 type EventOption = {
   slug: string;
   title: string;
   kind: string;
   startDate: string | null;
+  endDate: string | null;
   timeLabel: string | null;
+  excerpt: string;
+  tiers: Tier[];
   ticketPkr: number;
   seatsLeft: number;
 };
+
+function daysOf(e: EventOption): string[] {
+  if (!e.startDate) return [];
+  const out: string[] = [];
+  const last = e.endDate && e.endDate > e.startDate ? e.endDate : e.startDate;
+  for (let d = e.startDate; d <= last && out.length < 14; d = addDaysISO(d, 1)) out.push(d);
+  return out;
+}
+
+function tiersOf(e: EventOption): Tier[] {
+  return e.tiers.length
+    ? e.tiers
+    : [{ name: "Standard Pass", pricePkr: e.ticketPkr, dayPricePkr: null, includes: "", note: "", stay: false }];
+}
+
+const shortDate = (iso: string) =>
+  new Date(iso + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+
+function dateRange(e: EventOption) {
+  const days = daysOf(e);
+  if (!days.length) return "Dates announced soon";
+  return days.length === 1 ? shortDate(days[0]) : `${shortDate(days[0])} – ${shortDate(days[days.length - 1])}`;
+}
 type StayOption = { key: "SHARED_BUNK" | "PRIVATE_ROOM"; name: string; nightlyPkr: number; weeklyPkr: number | null };
-type Kind = "DAY_PASS" | "EVENT";
 type Done = Extract<Awaited<ReturnType<typeof submitPass>>, { ok: true }>;
 
 export default function PassBooking({
   events,
-  dayPassPkr,
   stays,
   minStay,
   whatsapp,
-  initialKind,
   initialEvent,
   member,
 }: {
   events: EventOption[];
-  dayPassPkr: number;
   stays: StayOption[];
   minStay: number;
   whatsapp: string;
-  initialKind: Kind | null;
   initialEvent?: string;
   member: { name: string; email: string; phone: string } | null;
 }) {
-  const [kind, setKind] = useState<Kind | null>(initialKind);
-  const [eventSlug, setEventSlug] = useState(initialEvent ?? events[0]?.slug ?? "");
+  const [eventSlug, setEventSlug] = useState(initialEvent ?? (events.length === 1 ? events[0].slug : ""));
+  const [tierName, setTierName] = useState("");
+  const [dayPass, setDayPass] = useState(false);
   const [date, setDate] = useState(() => addDaysISO(todayISO(), 1));
+  const [gender, setGender] = useState("");
   const [name, setName] = useState(member?.name ?? "");
   const [age, setAge] = useState("");
   const [phone, setPhone] = useState(member?.phone ?? "");
@@ -73,9 +96,14 @@ export default function PassBooking({
   const [done, setDone] = useState<Done | null>(null);
 
   const event = events.find((e) => e.slug === eventSlug) ?? null;
-  const eventHasDate = Boolean(event?.startDate);
-  const visitDate = kind === "EVENT" && event?.startDate ? event.startDate : date;
-  const unitPrice = kind === "EVENT" ? event?.ticketPkr ?? 0 : dayPassPkr;
+  const tiers = event ? tiersOf(event) : [];
+  const tier = tiers.find((t) => t.name === tierName) ?? (tiers.length === 1 ? tiers[0] : null);
+  const days = event ? daysOf(event) : [];
+  const canDayPass = Boolean(tier?.dayPricePkr) && days.length > 1;
+  const isDay = canDayPass && dayPass;
+  const visitDate = isDay ? (days.includes(date) ? date : days[0]) : days[0] ?? date;
+  const unitPrice = tier ? (isDay ? tier.dayPricePkr ?? 0 : tier.pricePkr) : 0;
+  const stayIncluded = Boolean(tier?.stay);
   const stay = stays.find((s) => s.key === stayKey);
   const stayPrice = useMemo(() => {
     if (!stay || !stay.nightlyPkr) return 0;
@@ -83,15 +111,17 @@ export default function PassBooking({
     return stay.nightlyPkr * nights;
   }, [stay, nights]);
 
-  const choose = (k: Kind) => {
-    setKind(k);
+  const chooseEvent = (slug: string) => {
+    setEventSlug(slug);
+    setTierName("");
+    setDayPass(false);
     setError(null);
-    setTimeout(() => document.getElementById("pass-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    setTimeout(() => document.getElementById("pass-step")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!kind || busy) return;
+    if (!event || !tier || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -101,17 +131,20 @@ export default function PassBooking({
         for (const k of ["utm_source", "utm_medium", "utm_campaign"]) if (sp.get(k)) utm[k] = sp.get(k)!;
       } catch {}
       const res = await submitPass({
-        kind,
-        eventSlug: kind === "EVENT" ? eventSlug : undefined,
+        kind: "EVENT",
+        eventSlug,
+        tierName: tier.name,
+        dayPass: isDay,
         visitDate,
         name,
         age: Number(age),
+        gender,
         phone,
         whatsapp: sameWa ? phone : whats,
         email,
-        city: wantsStay ? city : undefined,
+        city: wantsStay || stayIncluded ? city : undefined,
         guestsCount: guests,
-        stay: wantsStay ? { key: stayKey, nights } : null,
+        stay: wantsStay && !stayIncluded ? { key: stayKey, nights } : null,
         utm,
         honeypot,
       });
@@ -178,94 +211,146 @@ export default function PassBooking({
     );
   }
 
-  const choices = [
-    {
-      k: "DAY_PASS" as const,
-      Icon: Coffee,
-      title: "Community Day Pass",
-      text: "Work, create and hang out for the day with creators like you.",
-      price: dayPassPkr > 0 ? `${pkr(dayPassPkr)} / person` : "Price shared on call",
-    },
-    {
-      k: "EVENT" as const,
-      Icon: Ticket,
-      title: "Workshop / Event Pass",
-      text: events.length ? `${events.length} upcoming — pick yours in the form.` : "No events open right now.",
-      price: events.length ? "Seat confirmed on call" : "",
-      disabled: events.length === 0,
-    },
-  ];
-
   return (
     <div>
-      {/* Step 1: what are you booking? */}
-      <div className="grid sm:grid-cols-3 gap-3">
-        {choices.map((c) => (
-          <button
-            key={c.k}
-            type="button"
-            disabled={c.disabled}
-            onClick={() => choose(c.k)}
-            className={cx(
-              "text-left rounded-2xl border p-5 transition-all duration-300",
-              kind === c.k ? "border-ink bg-mist" : "border-line hover:border-ink-soft bg-paper",
-              c.disabled && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <c.Icon size={20} />
-              {kind === c.k && (
-                <span className="w-5 h-5 rounded-full bg-ink text-paper flex items-center justify-center">
-                  <Check size={12} />
-                </span>
+      {/* Step 1: which workshop? */}
+      <p className="kicker text-ink-soft">1 · Choose your workshop</p>
+      <div className="grid sm:grid-cols-2 gap-3 mt-3">
+        {events.map((e) => {
+          const ts = tiersOf(e);
+          const from = Math.min(...ts.map((t) => t.dayPricePkr || t.pricePkr).filter((n) => n > 0));
+          const full = e.seatsLeft < 1;
+          return (
+            <button
+              key={e.slug}
+              type="button"
+              disabled={full}
+              onClick={() => chooseEvent(e.slug)}
+              className={cx(
+                "text-left rounded-2xl border p-5 transition-all duration-300",
+                eventSlug === e.slug ? "border-ink bg-mist" : "border-line hover:border-ink-soft bg-paper",
+                full && "opacity-50 cursor-not-allowed"
               )}
-            </div>
-            <p className="font-semibold mt-3">{c.title}</p>
-            <p className="text-xs text-ink-soft mt-1 leading-relaxed">{c.text}</p>
-            {c.price && <p className="mt-3 text-sm font-semibold">{c.price}</p>}
-          </button>
-        ))}
+            >
+              <div className="flex items-center justify-between">
+                <Ticket size={20} />
+                {eventSlug === e.slug && (
+                  <span className="w-5 h-5 rounded-full bg-ink text-paper flex items-center justify-center">
+                    <Check size={12} />
+                  </span>
+                )}
+              </div>
+              <p className="font-semibold mt-3">{e.title}</p>
+              <p className="text-xs text-ink-soft mt-1">{dateRange(e)}{e.timeLabel ? ` · ${e.timeLabel}` : ""}</p>
+              <p className="mt-3 text-sm font-semibold">
+                {full ? "Fully booked" : Number.isFinite(from) ? `Passes from ${pkr(from)}` : "Free"}
+                {!full && e.seatsLeft <= 10 ? <span className="font-normal text-ink-soft"> · {e.seatsLeft} seats left</span> : null}
+              </p>
+            </button>
+          );
+        })}
         <Link
           href="/stay#book"
           className="text-left rounded-2xl border border-line hover:border-ink-soft bg-paper p-5 transition-all duration-300"
         >
           <BedDouble size={20} />
-          <p className="font-semibold mt-3">Stay {minStay}+ nights</p>
-          <p className="text-xs text-ink-soft mt-1 leading-relaxed">Bunks and private rooms with live availability.</p>
+          <p className="font-semibold mt-3">Just want to stay?</p>
+          <p className="text-xs text-ink-soft mt-1 leading-relaxed">Bunks and private rooms, {minStay}+ nights, live availability.</p>
           <p className="mt-3 text-sm font-semibold inline-flex items-center gap-1">
             See rooms <ArrowRight size={14} />
           </p>
         </Link>
       </div>
+      {events.length === 0 && (
+        <p className="mt-4 rounded-2xl bg-mist p-5 text-sm">
+          No workshop is open for booking right now. {whatsapp ? (
+            <a className="u-link font-medium" href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer">Message us on WhatsApp</a>
+          ) : "Check back soon"} to hear about the next one first.
+        </p>
+      )}
 
-      {/* Step 2: the form */}
-      {kind && (
-        <form id="pass-form" onSubmit={submit} className="scroll-mt-28 mt-6 rounded-3xl border border-line bg-paper p-6 md:p-8">
-          <p className="kicker text-ink-soft">{kind === "EVENT" ? "Workshop / Event Pass" : "Community Day Pass"}</p>
+      {/* Step 2: which pass? */}
+      {event && (
+        <div id="pass-step" className="scroll-mt-28 mt-8">
+          <p className="kicker text-ink-soft">2 · Pick your pass</p>
+          <div className={cx("grid gap-3 mt-3", tiers.length >= 3 ? "sm:grid-cols-3" : tiers.length === 2 ? "sm:grid-cols-2" : "")}>
+            {tiers.map((t) => {
+              const active = tier?.name === t.name;
+              return (
+                <button
+                  key={t.name}
+                  type="button"
+                  onClick={() => {
+                    setTierName(t.name);
+                    if (!t.dayPricePkr) setDayPass(false);
+                    if (t.stay) setWantsStay(false);
+                  }}
+                  className={cx(
+                    "text-left rounded-2xl border p-5 transition-all duration-300 flex flex-col",
+                    active ? "border-ink bg-ink text-paper" : "border-line hover:border-ink-soft bg-paper"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    {t.stay ? <Home size={18} /> : <Ticket size={18} />}
+                    {active && <Check size={15} />}
+                  </div>
+                  <p className="font-semibold mt-3">{t.name}</p>
+                  <p className="font-display font-extrabold text-2xl tracking-tight mt-1">{t.pricePkr ? pkr(t.pricePkr) : "Free"}</p>
+                  {t.dayPricePkr ? (
+                    <p className={cx("text-xs mt-0.5", active ? "text-paper/70" : "text-ink-soft")}>or {pkr(t.dayPricePkr)} for a single day</p>
+                  ) : null}
+                  {t.includes && <p className={cx("text-xs mt-3 leading-relaxed", active ? "text-paper/80" : "text-ink-soft")}>{t.includes}</p>}
+                  {t.note && <p className={cx("text-[11px] mt-2 uppercase tracking-wide font-semibold", active ? "text-paper/60" : "text-ink-soft")}>{t.note}</p>}
+                </button>
+              );
+            })}
+          </div>
 
-          {kind === "EVENT" && (
-            <div className="mt-4">
-              <label className="label">Which one?</label>
-              <select className="field" value={eventSlug} onChange={(e) => setEventSlug(e.target.value)}>
-                {events.map((e) => (
-                  <option key={e.slug} value={e.slug} disabled={e.seatsLeft < 1}>
-                    {e.title}
-                    {e.startDate ? ` · ${formatDate(e.startDate)}` : ""}
-                    {e.ticketPkr > 0 ? ` · ${pkr(e.ticketPkr)}` : " · Free"}
-                    {e.seatsLeft < 1 ? " · Full" : ""}
-                  </option>
-                ))}
-              </select>
+          {tier && canDayPass && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {[
+                { v: false, l: `Full workshop · ${pkr(tier.pricePkr)}` },
+                { v: true, l: `Single day pass · ${pkr(tier.dayPricePkr ?? 0)}` },
+              ].map((o) => (
+                <button
+                  key={String(o.v)}
+                  type="button"
+                  onClick={() => setDayPass(o.v)}
+                  className={cx(
+                    "rounded-full px-4 py-2 text-sm font-medium border transition-colors",
+                    dayPass === o.v ? "bg-ink text-paper border-ink" : "border-line hover:border-ink"
+                  )}
+                >
+                  {o.l}
+                </button>
+              ))}
             </div>
           )}
+        </div>
+      )}
 
+      {/* Step 3: the form */}
+      {event && tier && (
+        <form id="pass-form" onSubmit={submit} className="scroll-mt-28 mt-8 rounded-3xl border border-line bg-paper p-6 md:p-8">
+          <p className="kicker text-ink-soft">3 · Your details</p>
+          <p className="font-semibold mt-2">
+            {event.title} · {tier.name}
+            {isDay ? " · day pass" : ""}
+          </p>
           <div className="grid sm:grid-cols-2 gap-3 mt-4">
             <div>
               <label className="label">Date</label>
-              {kind === "EVENT" && eventHasDate ? (
+              {isDay ? (
+                <select className="field" value={visitDate} onChange={(e) => setDate(e.target.value)}>
+                  {days.map((d) => (
+                    <option key={d} value={d}>
+                      {shortDate(d)}
+                    </option>
+                  ))}
+                </select>
+              ) : days.length ? (
                 <p className="field flex items-center gap-2">
-                  <CalendarDays size={15} className="text-ink-soft" /> {formatDate(visitDate)}
-                  {event?.timeLabel ? ` · ${event.timeLabel}` : ""}
+                  <CalendarDays size={15} className="text-ink-soft" /> {dateRange(event)}
                 </p>
               ) : (
                 <input type="date" required className="field" min={todayISO()} value={date} onChange={(e) => setDate(e.target.value)} />
@@ -285,9 +370,19 @@ export default function PassBooking({
               <label className="label">Full name</label>
               <input required className="field" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
             </div>
-            <div>
-              <label className="label">Age</label>
-              <input required type="number" min={10} max={100} inputMode="numeric" className="field" value={age} onChange={(e) => setAge(e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Age</label>
+                <input required type="number" min={10} max={100} inputMode="numeric" className="field" value={age} onChange={(e) => setAge(e.target.value)} />
+              </div>
+              <div>
+                <label className="label">Gender</label>
+                <select required className="field" value={gender} onChange={(e) => setGender(e.target.value)}>
+                  <option value="" disabled>Select</option>
+                  <option>Male</option>
+                  <option>Female</option>
+                </select>
+              </div>
             </div>
             <div>
               <label className="label">Phone</label>
@@ -312,6 +407,17 @@ export default function PassBooking({
           <input type="text" tabIndex={-1} autoComplete="off" className="hidden" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} aria-hidden />
 
           {/* Stay add-on for out-of-city guests */}
+          {stayIncluded ? (
+            <div className="mt-6 rounded-3xl bg-mist p-6 flex items-start gap-4">
+              <span className="w-11 h-11 rounded-full bg-paper flex items-center justify-center shrink-0"><Home size={19} /></span>
+              <div className="flex-1">
+                <p className="font-semibold">Stay is included in {tier.name}.</p>
+                <p className="text-sm text-ink-soft mt-1">Hotel ki koi tension nahi, aap workshop ki raatein hamare ghar mein guzaro ge.</p>
+                <label className="label mt-3">Which city are you coming from?</label>
+                <input className="field" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Karachi, Islamabad, Multan…" />
+              </div>
+            </div>
+          ) : (
           <div className={cx("mt-6 rounded-3xl p-6 md:p-7 transition-colors", wantsStay ? "bg-ink text-paper" : "bg-mist")}>
             <div className="flex items-start gap-4">
               <span className={cx("w-11 h-11 rounded-full flex items-center justify-center shrink-0", wantsStay ? "bg-paper text-ink" : "bg-paper")}>
@@ -380,18 +486,19 @@ export default function PassBooking({
               </div>
             </div>
           </div>
+          )}
 
           {/* Summary + submit */}
           <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-line pt-5">
             <div className="text-sm">
               <p className="font-semibold">
-                {unitPrice > 0 ? pkr(unitPrice * guests + (wantsStay ? stayPrice : 0)) : wantsStay && stayPrice ? `Stay ${pkr(stayPrice)} · pass price on call` : "Price confirmed on call"}
+                {unitPrice > 0 ? `Total ${pkr(unitPrice * guests + (wantsStay && !stayIncluded ? stayPrice : 0))}` : "Free entry"}
               </p>
               <p className="text-ink-soft text-[12.5px] mt-0.5">Nothing to pay now. We confirm by phone / WhatsApp.</p>
             </div>
             <button type="submit" disabled={busy} className="btn btn-primary">
               {busy ? <Loader2 size={16} className="animate-spin" /> : null}
-              {wantsStay ? "Book pass + stay" : "Book my pass"} <ArrowRight size={16} />
+              {wantsStay && !stayIncluded ? "Book pass + stay" : "Book my pass"} <ArrowRight size={16} />
             </button>
           </div>
           {error && <p className="mt-3 text-sm font-medium">{error}</p>}
