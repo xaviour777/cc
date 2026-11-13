@@ -81,7 +81,7 @@ export default async function Footer() {
             <p className="kicker text-ink-soft">Explore</p>
             <ul className="mt-4 space-y-2.5 text-[14.5px]">
               {[
-                ["Stay", "/stay"],
+                ["Stay", "/book?stay=1#stay"],
                 ["Events", "/events"],
                 ["Community", "/community"],
                 ["Journal", "/journal"],

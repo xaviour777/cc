@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { IMG, CREATORS } from "@/lib/images";
 import { getArticles, getPublicEvents, getSocialPosts, getStayProducts } from "@/lib/data";
-import { getHidePrices, getMinStayNights, getSetting } from "@/lib/stays";
+import { getMinStayNights, getSetting } from "@/lib/stays";
 import { pkr } from "@/lib/utils";
 import Reveal from "@/components/ui/reveal";
 import EventCard from "@/components/site/event-card";
@@ -27,15 +27,16 @@ import ReelGrid from "@/components/site/reel-grid";
 import JoinForm from "@/components/forms/join-form";
 
 export default async function HomePage() {
-  const [products, events, articlesList, reels, minStay, discount, hidePrices] = await Promise.all([
+  const [products, events, articlesList, reels, minStay, discount] = await Promise.all([
     getStayProducts(),
     getPublicEvents(),
     getArticles("en", 3),
     getSocialPosts(),
     getMinStayNights(),
     getSetting<number>("residentDiscountPct", 25),
-    getHidePrices(),
   ]);
+  // Stays are request-only for now: prices are shared on WhatsApp.
+  const hidePrices = true;
   const featured = events.filter((e) => e.featured && e.kind === "WORKSHOP");
   const community = events.filter((e) => e.kind !== "WORKSHOP").slice(0, 3);
 
@@ -67,7 +68,7 @@ export default async function HomePage() {
               <Link href="/book" className="btn btn-primary">
                 Book a Pass <ArrowRight size={16} />
               </Link>
-              <Link href="/stay#book" className="btn btn-outline">
+              <Link href="/book?stay=1#stay" className="btn btn-outline">
                 Find Your Stay
               </Link>
             </div>
@@ -164,15 +165,15 @@ export default async function HomePage() {
               <p className="kicker text-ink-soft">Stay with us</p>
               <h2 className="display-lg mt-3">Pick your corner.</h2>
             </div>
-            <Link href="/stay" className="btn btn-outline">
-              All rates & booking <ArrowUpRight size={15} />
+            <Link href="/book?stay=1#stay" className="btn btn-outline">
+              Request a stay <ArrowUpRight size={15} />
             </Link>
           </Reveal>
 
           <div className="grid md:grid-cols-2 gap-5">
             {products.map((p, i) => (
               <Reveal key={p.key} delay={i * 90}>
-                <Link href={`/stay#book`} className="group block rounded-3xl overflow-hidden border border-line card-lift bg-paper">
+                <Link href={`/book?stay=1#stay`} className="group block rounded-3xl overflow-hidden border border-line card-lift bg-paper">
                   <div className="img-frame aspect-[16/10]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img

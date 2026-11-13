@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function BookPage({
   searchParams,
 }: {
-  searchParams: Promise<{ event?: string }>;
+  searchParams: Promise<{ event?: string; stay?: string }>;
 }) {
   const sp = await searchParams;
   const today = todayISO();
@@ -52,7 +52,7 @@ export default async function BookPage({
           </h1>
           <p className="lede mt-5">
             Pick your workshop and fill one short form. Our team calls you on WhatsApp to
-            confirm. Coming from another city? Ask to stay with us in the same form.
+            confirm. Just want to stay? Send a stay request below — we share the price on WhatsApp.
           </p>
         </Reveal>
         <div className="mt-12">
@@ -60,6 +60,7 @@ export default async function BookPage({
             events={events}
             whatsapp={whatsapp}
             initialEvent={initialEvent}
+            initialStay={sp.stay !== undefined}
             member={member ? { name: member.name, email: member.email, phone: member.phone ?? "" } : null}
           />
         </div>

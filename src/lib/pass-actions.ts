@@ -13,7 +13,7 @@ const digits = (s: string) => s.replace(/\D/g, "");
 const fmt = (n: number) => `PKR ${n.toLocaleString("en-PK")}`;
 
 export type PassInput = {
-  eventSlug: string;
+  eventSlug?: string;
   name: string;
   age: number;
   gender?: string;
@@ -42,20 +42,6 @@ export async function submitPass(input: PassInput) {
   if (digits(whatsapp).length < 10) return { ok: false as const, error: "Please enter a valid WhatsApp number." };
   if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false as const, error: "Please enter a valid email address." };
 
-  const [event] = await db.select().from(events).where(eq(events.slug, input.eventSlug)).limit(1);
-  if (!event || event.status !== "PUBLISHED")
-    return { ok: false as const, error: "This workshop is not open for booking right now." };
-  const visitDate = event.startDate && event.startDate >= todayISO() ? event.startDate : todayISO();
-  if (event.startDate && event.startDate < todayISO() && (event.endDate ?? event.startDate) < todayISO())
-    return { ok: false as const, error: "This workshop has already happened." };
-
-  const taken = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(eventRegistrations)
-    .where(and(eq(eventRegistrations.eventId, event.id), ne(eventRegistrations.status, "CANCELLED")));
-  if (Number(taken[0]?.count ?? 0) + guests > event.capacity)
-    return { ok: false as const, error: "Sorry, not enough seats left. Message us on WhatsApp for the next one." };
-
   let stay: { from: string; to: string; city: string | null } | null = null;
   if (input.stay) {
     const { from, to } = input.stay;
@@ -64,21 +50,43 @@ export async function submitPass(input: PassInput) {
     stay = { from, to, city: input.stay.city?.trim() || null };
   }
 
-  const amount = event.ticketPkr * guests;
-  // Seats count against the event's capacity and show in reports.
-  const [reg] = await db
-    .insert(eventRegistrations)
-    .values({ eventId: event.id, name, email, phone: whatsapp, pricePkr: event.ticketPkr, amountDuePkr: amount, status: "PENDING_PAYMENT" })
-    .returning({ id: eventRegistrations.id });
+  // No workshop chosen = a stay-only request (price shared on WhatsApp later).
+  let event: typeof events.$inferSelect | null = null;
+  let visitDate = stay?.from ?? todayISO();
+  let amount = 0;
+  let registrationId: number | null = null;
+  if (input.eventSlug) {
+    [event] = await db.select().from(events).where(eq(events.slug, input.eventSlug)).limit(1);
+    if (!event || event.status !== "PUBLISHED")
+      return { ok: false as const, error: "This workshop is not open for booking right now." };
+    if (event.startDate && (event.endDate ?? event.startDate) < todayISO())
+      return { ok: false as const, error: "This workshop has already happened." };
+    visitDate = event.startDate && event.startDate >= todayISO() ? event.startDate : todayISO();
+    const taken = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(eventRegistrations)
+      .where(and(eq(eventRegistrations.eventId, event.id), ne(eventRegistrations.status, "CANCELLED")));
+    if (Number(taken[0]?.count ?? 0) + guests > event.capacity)
+      return { ok: false as const, error: "Sorry, not enough seats left. Message us on WhatsApp for the next one." };
+    amount = event.ticketPkr * guests;
+    // Seats count against the event's capacity and show in reports.
+    const [reg] = await db
+      .insert(eventRegistrations)
+      .values({ eventId: event.id, name, email, phone: whatsapp, pricePkr: event.ticketPkr, amountDuePkr: amount, status: "PENDING_PAYMENT" })
+      .returning({ id: eventRegistrations.id });
+    registrationId = reg.id;
+  } else if (!stay) {
+    return { ok: false as const, error: "Choose a workshop or your stay dates." };
+  }
 
   const reference = genReference("CP");
   const [pass] = await db
     .insert(passes)
     .values({
       reference,
-      kind: "EVENT",
-      eventId: event.id,
-      registrationId: reg.id,
+      kind: event ? "EVENT" : "STAY",
+      eventId: event?.id ?? null,
+      registrationId,
       visitDate,
       name,
       age,
@@ -96,7 +104,7 @@ export async function submitPass(input: PassInput) {
     })
     .returning();
 
-  const what = `${event.title} pass`;
+  const what = event ? `${event.title} pass` : "Stay request";
   const stayLine = stay ? `${stay.from} to ${stay.to} (${nightsBetween(stay.from, stay.to)} nights)${stay.city ? `, coming from ${stay.city}` : ""}` : "";
   const portal = `${siteUrl()}/pass/${reference}?email=${encodeURIComponent(email)}`;
   const waNumber = digits(whatsapp).replace(/^0/, "92");
@@ -108,11 +116,11 @@ export async function submitPass(input: PassInput) {
     name,
     email,
     phone: whatsapp,
-    tags: ["content-colony", "workshop-pass", ...(stay ? ["stay-request", "out-of-city"] : [])],
+    tags: ["content-colony", ...(event ? ["workshop-pass"] : []), ...(stay ? ["stay-request"] : [])],
     source: `Content Colony — ${what}`,
     notes: `Ref ${reference} · ${guests} guest(s)${stay ? ` · stay ${stayLine}` : ""}`,
     utm: input.utm ?? null,
-    opportunity: { name: `${name} — ${what}${stay ? " + stay request" : ""}`, monetaryValue: amount },
+    opportunity: { name: `${name} — ${what}${stay && event ? " + stay request" : ""}${stay ? ` (${stay.from})` : ""}`, monetaryValue: amount },
   });
 
   // Team alert
@@ -120,9 +128,9 @@ export async function submitPass(input: PassInput) {
     channel: "EMAIL",
     to: await teamInbox(),
     copyTeam: false,
-    subject: `New booking: ${what} — ${name}${stay ? " (+ stay request)" : ""}`,
+    subject: `New booking: ${what} — ${name}${stay && event ? " (+ stay request)" : ""}`,
     body: [
-      `New ${what} request. Please call / WhatsApp to confirm and take payment.`,
+      event ? `New ${what} request. Please call / WhatsApp to confirm and take payment.` : `New stay request. Please WhatsApp the price and confirm.`,
       ``,
       `Reference: ${reference}`,
       `Name: ${name}`,
@@ -131,7 +139,7 @@ export async function submitPass(input: PassInput) {
       `WhatsApp: ${whatsapp}  (https://wa.me/${waNumber})`,
       `Email: ${email}`,
       `Guests: ${guests}`,
-      `Amount: ${amount > 0 ? fmt(amount) : "free"}`,
+      event ? `Amount: ${amount > 0 ? fmt(amount) : "free"}` : null,
       stay ? `Stay request: ${stayLine} — share the price on the call.` : null,
       ``,
       `Open in admin: ${siteUrl()}/admin/passes`,
@@ -151,9 +159,13 @@ export async function submitPass(input: PassInput) {
     body: [
       `Assalam-o-alaikum ${name}!`,
       ``,
-      `Shukriya — we received your ${what} request (${guests} ${guests === 1 ? "guest" : "guests"}).`,
-      `Our team will call or WhatsApp you shortly to confirm your seat and payment.`,
-      stay ? `\nYour stay request (${stayLine}) is noted too. We'll share the details on the call.` : null,
+      event
+        ? `Shukriya — we received your ${what} request (${guests} ${guests === 1 ? "guest" : "guests"}).`
+        : `Shukriya — we received your stay request: ${stayLine}, ${guests} ${guests === 1 ? "guest" : "guests"}.`,
+      event
+        ? `Our team will call or WhatsApp you shortly to confirm your seat and payment.`
+        : `Our team will WhatsApp you shortly with the price and availability.`,
+      stay && event ? `\nYour stay request (${stayLine}) is noted too. We'll share the details on the call.` : null,
       ``,
       `Before you arrive, please add your ID (CNIC / passport) here — it makes check-in quick:`,
       portal,
