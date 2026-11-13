@@ -221,11 +221,12 @@ export default function StayRequest({
 
       <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-line pt-5">
         <p className="text-ink-soft text-[13px] max-w-sm">
-          Nothing to pay now. Our team reads every request personally and reaches you on WhatsApp.
+          No payment, no pressure. Just you, your dates and your dream. A real person from our team will
+          welcome you on WhatsApp.
         </p>
         <button type="submit" disabled={busy} className="btn btn-primary">
           {busy ? <Loader2 size={16} className="animate-spin" /> : null}
-          Request to live here <ArrowRight size={16} />
+          Count me in <ArrowRight size={16} />
         </button>
       </div>
       {error && <p className="mt-3 text-sm font-medium">{error}</p>}

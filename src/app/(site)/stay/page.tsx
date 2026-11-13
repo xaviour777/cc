@@ -5,15 +5,10 @@ import {
   ArrowRight,
   BadgeCheck,
   BedDouble,
-  ChefHat,
-  Clapperboard,
   DoorOpen,
   Lightbulb,
-  Mic,
-  Popcorn,
   Sparkles,
   Users,
-  Wifi,
 } from "lucide-react";
 import { IMG } from "@/lib/images";
 import { getMinStayNights, getWhatsappNumber } from "@/lib/stays";
@@ -162,10 +157,7 @@ export default async function StayPage({
                     </ul>
                     <div className="mt-auto pt-6">
                       <div className="flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-line">
-                        <p>
-                          <span className="font-display font-bold text-lg tracking-tight block">Your spot is waiting</span>
-                          <span className="text-[13px] text-ink-soft">By personal invitation · {minStay}+ nights</span>
-                        </p>
+                        <p className="font-display font-bold text-lg tracking-tight">Your spot is waiting</p>
                         <Link
                           href={`/stay?room=${r.key === "Bunker" ? "bunker" : "private"}#request`}
                           scroll={false}
@@ -177,38 +169,6 @@ export default async function StayPage({
                     </div>
                   </div>
                 </article>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- WHAT COMES WITH LIVING HERE ---------- */}
-      <section className="bg-mist border-y border-line px-5 md:px-10 py-16 md:py-24">
-        <div className="mx-auto max-w-[1440px]">
-          <Reveal className="max-w-2xl">
-            <p className="kicker text-ink-soft">Part of every stay</p>
-            <h2 className="display-lg mt-3">The whole Colony opens up to you.</h2>
-            <p className="lede mt-4">
-              Every bunk and every room comes with the full creator experience. Nothing held back, nothing
-              to unlock.
-            </p>
-          </Reveal>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-line rounded-3xl overflow-hidden mt-10 border border-line">
-            {[
-              { Icon: Users, t: "Coworking lounge", d: "Shared desks, good chairs, better company." },
-              { Icon: Wifi, t: "High-speed Wi-Fi", d: "With a backup line, so uploads never wait." },
-              { Icon: Clapperboard, t: "Production studio", d: "Lights, audio, backdrop. Reserved by slot." },
-              { Icon: Mic, t: "Soundproof meeting pod", d: "For client calls, podcasts and interviews." },
-              { Icon: ChefHat, t: "Shared kitchen", d: "Cook together or claim the midnight chai shift." },
-              { Icon: Popcorn, t: "Community nights", d: "Movie premieres, brainstorms and morning idea sessions." },
-            ].map(({ Icon, t, d }, i) => (
-              <Reveal key={t} delay={(i % 3) * 70} className="bg-paper">
-                <div className="p-6 md:p-7 h-full">
-                  <Icon size={20} />
-                  <p className="font-semibold mt-4">{t}</p>
-                  <p className="text-sm text-ink-soft mt-1.5 leading-relaxed">{d}</p>
-                </div>
               </Reveal>
             ))}
           </div>
@@ -231,10 +191,6 @@ export default async function StayPage({
             </p>
           </Reveal>
           <StayRequest key={initialRoom} initialRoom={initialRoom} whatsapp={whatsapp} minStay={minStay} member={member ? { name: member.name, email: member.email, phone: member.phone ?? "" } : null} />
-          <p className="text-[12.5px] text-ink-soft mt-5 text-center leading-relaxed">
-            ID verification (CNIC / NICOP / passport) is required for overnight guests in Punjab. Your documents
-            stay private and are only seen by our admin team.
-          </p>
         </div>
       </section>
     </div>
