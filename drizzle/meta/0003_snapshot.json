@@ -1,5 +1,5 @@
 {
-  "id": "82d5c188-bf79-4420-b209-691099aec4e8",
+  "id": "b66e99de-167b-4cad-b9ad-d3a518641a8e",
   "prevId": "56df64ae-6a29-4a11-af97-44eb0c368bca",
   "version": "7",
   "dialect": "postgresql",
@@ -1748,13 +1748,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "pass_tiers": {
-          "name": "pass_tiers",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -2230,19 +2223,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "tier_name": {
-          "name": "tier_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "day_pass": {
-          "name": "day_pass",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "visit_date": {
           "name": "visit_date",
           "type": "date",
@@ -2332,21 +2312,15 @@
           "notNull": true,
           "default": false
         },
-        "stay_key": {
-          "name": "stay_key",
-          "type": "text",
+        "stay_from": {
+          "name": "stay_from",
+          "type": "date",
           "primaryKey": false,
           "notNull": false
         },
-        "stay_nights": {
-          "name": "stay_nights",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "stay_booking_ref": {
-          "name": "stay_booking_ref",
-          "type": "text",
+        "stay_to": {
+          "name": "stay_to",
+          "type": "date",
           "primaryKey": false,
           "notNull": false
         },

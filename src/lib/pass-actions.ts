@@ -4,30 +4,25 @@ import crypto from "crypto";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { eventRegistrations, events, passes } from "@/db/schema";
-import { createBooking, getSetting } from "@/lib/stays";
 import { queueLeadSync, recordNotification, teamInbox } from "@/lib/ghl";
 import { saveKycFile } from "@/lib/kyc-storage";
 import { siteUrl } from "@/lib/members";
-import { addDaysISO, genReference, isISODate, maskIdNumber, todayISO } from "@/lib/utils";
+import { genReference, isISODate, maskIdNumber, nightsBetween, todayISO } from "@/lib/utils";
 
 const digits = (s: string) => s.replace(/\D/g, "");
 const fmt = (n: number) => `PKR ${n.toLocaleString("en-PK")}`;
 
 export type PassInput = {
-  kind: "DAY_PASS" | "EVENT";
-  eventSlug?: string;
-  tierName?: string;
-  dayPass?: boolean;
-  visitDate: string;
+  eventSlug: string;
   name: string;
   age: number;
   gender?: string;
   phone: string;
   whatsapp: string;
   email: string;
-  city?: string;
   guestsCount: number;
-  stay?: { key: "SHARED_BUNK" | "PRIVATE_ROOM"; nights: number } | null;
+  /** Optional stay request: just dates, the team quotes on the call. */
+  stay?: { from: string; to: string; city?: string } | null;
   utm?: Record<string, string>;
   honeypot?: string;
 };
@@ -47,79 +42,43 @@ export async function submitPass(input: PassInput) {
   if (digits(whatsapp).length < 10) return { ok: false as const, error: "Please enter a valid WhatsApp number." };
   if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false as const, error: "Please enter a valid email address." };
 
-  let visitDate = input.visitDate;
-  let amount = 0;
-  let event: typeof events.$inferSelect | null = null;
-  let tierName: string | null = null;
-  let tierHasStay = false;
-  let dayPass = false;
+  const [event] = await db.select().from(events).where(eq(events.slug, input.eventSlug)).limit(1);
+  if (!event || event.status !== "PUBLISHED")
+    return { ok: false as const, error: "This workshop is not open for booking right now." };
+  const visitDate = event.startDate && event.startDate >= todayISO() ? event.startDate : todayISO();
+  if (event.startDate && event.startDate < todayISO() && (event.endDate ?? event.startDate) < todayISO())
+    return { ok: false as const, error: "This workshop has already happened." };
 
-  if (input.kind === "EVENT") {
-    const rows = await db.select().from(events).where(eq(events.slug, input.eventSlug ?? "")).limit(1);
-    event = rows[0] ?? null;
-    if (!event || event.status !== "PUBLISHED")
-      return { ok: false as const, error: "This workshop / event is not open for booking right now." };
-    // Which pass, and full workshop or a single day?
-    let price = event.ticketPkr;
-    const tiers = event.passTiers ?? [];
-    if (tiers.length) {
-      const tier = tiers.find((t) => t.name === input.tierName);
-      if (!tier) return { ok: false as const, error: "Please pick your pass." };
-      tierName = tier.name;
-      tierHasStay = tier.stay;
-      if (input.dayPass) {
-        if (!tier.dayPricePkr) return { ok: false as const, error: `${tier.name} is not available as a day pass.` };
-        price = tier.dayPricePkr;
-        dayPass = true;
-      } else price = tier.pricePkr;
-    }
-    const first = event.startDate;
-    const last = event.endDate ?? event.startDate;
-    if (dayPass && first && last) {
-      if (input.visitDate < first || input.visitDate > last)
-        return { ok: false as const, error: "Pick a day within the workshop dates." };
-    } else if (first) visitDate = first;
-    const taken = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(eventRegistrations)
-      .where(and(eq(eventRegistrations.eventId, event.id), ne(eventRegistrations.status, "CANCELLED")));
-    if (Number(taken[0]?.count ?? 0) + guests > event.capacity)
-      return { ok: false as const, error: "Sorry, not enough seats left for this one. Try another date or event." };
-    amount = price * guests;
-  } else {
-    amount = Number(await getSetting<number>("dayPassPkr", 0)) * guests;
-  }
-  if (!isISODate(visitDate) || visitDate < todayISO())
-    return { ok: false as const, error: "Please pick a date from today onwards." };
+  const taken = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(eventRegistrations)
+    .where(and(eq(eventRegistrations.eventId, event.id), ne(eventRegistrations.status, "CANCELLED")));
+  if (Number(taken[0]?.count ?? 0) + guests > event.capacity)
+    return { ok: false as const, error: "Sorry, not enough seats left. Message us on WhatsApp for the next one." };
 
-  // Workshop seats count against the event's capacity and show in reports.
-  let registrationId: number | null = null;
-  if (event) {
-    const [reg] = await db
-      .insert(eventRegistrations)
-      .values({
-        eventId: event.id,
-        name,
-        email,
-        phone: whatsapp,
-        pricePkr: event.ticketPkr,
-        amountDuePkr: amount,
-        status: "PENDING_PAYMENT",
-      })
-      .returning({ id: eventRegistrations.id });
-    registrationId = reg.id;
+  let stay: { from: string; to: string; city: string | null } | null = null;
+  if (input.stay) {
+    const { from, to } = input.stay;
+    if (!isISODate(from) || !isISODate(to) || from < todayISO() || to <= from)
+      return { ok: false as const, error: "Please choose your stay dates (arrival before departure)." };
+    stay = { from, to, city: input.stay.city?.trim() || null };
   }
+
+  const amount = event.ticketPkr * guests;
+  // Seats count against the event's capacity and show in reports.
+  const [reg] = await db
+    .insert(eventRegistrations)
+    .values({ eventId: event.id, name, email, phone: whatsapp, pricePkr: event.ticketPkr, amountDuePkr: amount, status: "PENDING_PAYMENT" })
+    .returning({ id: eventRegistrations.id });
 
   const reference = genReference("CP");
   const [pass] = await db
     .insert(passes)
     .values({
       reference,
-      kind: input.kind,
-      eventId: event?.id ?? null,
-      registrationId,
-      tierName,
-      dayPass,
+      kind: "EVENT",
+      eventId: event.id,
+      registrationId: reg.id,
       visitDate,
       name,
       age,
@@ -127,48 +86,18 @@ export async function submitPass(input: PassInput) {
       phone,
       whatsapp,
       email,
-      city: input.city?.trim() || null,
+      city: stay?.city ?? null,
       guestsCount: guests,
       amountPkr: amount,
-      wantsStay: Boolean(input.stay),
-      stayKey: input.stay?.key ?? null,
-      stayNights: input.stay?.nights ?? null,
+      wantsStay: Boolean(stay),
+      stayFrom: stay?.from ?? null,
+      stayTo: stay?.to ?? null,
       utm: input.utm && Object.keys(input.utm).length ? input.utm : null,
     })
     .returning();
 
-  // Optional stay add-on: hold a real bed/room so nobody else takes it.
-  let stay: { reference: string; totalPkr: number; nights: number } | null = null;
-  let stayNote = tierHasStay ? `${tierName} includes stay — assign a bed for the workshop nights.` : "";
-  if (tierHasStay) await db.update(passes).set({ notes: stayNote }).where(eq(passes.id, pass.id));
-  if (input.stay && !tierHasStay) {
-    const nights = Math.max(1, Math.min(30, Math.round(input.stay.nights || 3)));
-    const res = await createBooking({
-      accommodationKey: input.stay.key,
-      checkIn: visitDate,
-      checkOut: addDaysISO(visitDate, nights),
-      guestName: name,
-      guestEmail: email,
-      guestPhone: whatsapp,
-      guestsCount: 1,
-      paymentMethod: "BANK_TRANSFER",
-      source: `pass ${reference}`,
-    });
-    if (res.ok) {
-      stay = { reference: res.reference, totalPkr: res.totalPkr, nights: res.nights };
-      await db.update(passes).set({ stayBookingRef: res.reference, stayNights: res.nights }).where(eq(passes.id, pass.id));
-    } else {
-      stayNote = `Stay could not be held automatically (${res.error}) — please arrange it on the call.`;
-      await db.update(passes).set({ notes: stayNote }).where(eq(passes.id, pass.id));
-    }
-  }
-
-  const what = event
-    ? `${event.title} — ${tierName ?? "Pass"}${dayPass ? ` (day pass, ${visitDate})` : ""}`
-    : "Community Day Pass";
-  const stayLabel = input.stay
-    ? `${input.stay.key === "SHARED_BUNK" ? "Shared bunk" : "Private room"}, ${stay?.nights ?? input.stay.nights} nights from ${visitDate}`
-    : "";
+  const what = `${event.title} pass`;
+  const stayLine = stay ? `${stay.from} to ${stay.to} (${nightsBetween(stay.from, stay.to)} nights)${stay.city ? `, coming from ${stay.city}` : ""}` : "";
   const portal = `${siteUrl()}/pass/${reference}?email=${encodeURIComponent(email)}`;
   const waNumber = digits(whatsapp).replace(/^0/, "92");
 
@@ -179,21 +108,11 @@ export async function submitPass(input: PassInput) {
     name,
     email,
     phone: whatsapp,
-    tags: [
-      "content-colony",
-      event ? "workshop-pass" : "day-pass",
-      ...(input.stay || tierHasStay ? ["stay-addon"] : []),
-      ...(tierName ? [tierName.toLowerCase().replace(/[^a-z0-9]+/g, "-")] : []),
-      ...(dayPass ? ["day-pass"] : []),
-      ...(input.city?.trim() ? ["out-of-city"] : []),
-    ],
+    tags: ["content-colony", "workshop-pass", ...(stay ? ["stay-request", "out-of-city"] : [])],
     source: `Content Colony — ${what}`,
-    notes: `Ref ${reference} · ${visitDate} · ${guests} guest(s)`,
+    notes: `Ref ${reference} · ${guests} guest(s)${stay ? ` · stay ${stayLine}` : ""}`,
     utm: input.utm ?? null,
-    opportunity: {
-      name: `${name} — ${what}${input.stay ? " + stay" : ""} (${visitDate})`,
-      monetaryValue: amount + (stay?.totalPkr ?? 0),
-    },
+    opportunity: { name: `${name} — ${what}${stay ? " + stay request" : ""}`, monetaryValue: amount },
   });
 
   // Team alert
@@ -201,7 +120,7 @@ export async function submitPass(input: PassInput) {
     channel: "EMAIL",
     to: await teamInbox(),
     copyTeam: false,
-    subject: `New booking: ${what} — ${name} (${visitDate})`,
+    subject: `New booking: ${what} — ${name}${stay ? " (+ stay request)" : ""}`,
     body: [
       `New ${what} request. Please call / WhatsApp to confirm and take payment.`,
       ``,
@@ -211,12 +130,9 @@ export async function submitPass(input: PassInput) {
       `Phone: ${phone}`,
       `WhatsApp: ${whatsapp}  (https://wa.me/${waNumber})`,
       `Email: ${email}`,
-      input.city?.trim() ? `Coming from: ${input.city.trim()}` : null,
-      `Date: ${visitDate}`,
       `Guests: ${guests}`,
-      `Amount: ${amount > 0 ? fmt(amount) : "to share on call"}`,
-      input.stay ? `Stay add-on: ${stayLabel}${stay ? ` · booking ${stay.reference} · ${stay.totalPkr ? fmt(stay.totalPkr) : "price to agree"}` : ""}` : null,
-      stayNote || null,
+      `Amount: ${amount > 0 ? fmt(amount) : "free"}`,
+      stay ? `Stay request: ${stayLine} — share the price on the call.` : null,
       ``,
       `Open in admin: ${siteUrl()}/admin/passes`,
     ]
@@ -235,9 +151,9 @@ export async function submitPass(input: PassInput) {
     body: [
       `Assalam-o-alaikum ${name}!`,
       ``,
-      `Shukriya — we received your ${what} request for ${visitDate} (${guests} ${guests === 1 ? "guest" : "guests"}).`,
-      `Our team will call or WhatsApp you shortly to confirm your booking and payment.`,
-      input.stay ? `\nYour stay: ${stayLabel}. Ghar jaisa mahol, apne jaise log — we'll sort everything on the call.` : null,
+      `Shukriya — we received your ${what} request (${guests} ${guests === 1 ? "guest" : "guests"}).`,
+      `Our team will call or WhatsApp you shortly to confirm your seat and payment.`,
+      stay ? `\nYour stay request (${stayLine}) is noted too. We'll share the details on the call.` : null,
       ``,
       `Before you arrive, please add your ID (CNIC / passport) here — it makes check-in quick:`,
       portal,
@@ -254,11 +170,9 @@ export async function submitPass(input: PassInput) {
   return {
     ok: true as const,
     reference,
-    visitDate,
-    amount,
     what,
-    stay,
-    stayNote: tierHasStay ? "" : stayNote,
+    amount,
+    stay: Boolean(stay),
     portal: `/pass/${reference}?email=${encodeURIComponent(email)}`,
   };
 }

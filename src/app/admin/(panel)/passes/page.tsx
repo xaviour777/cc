@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { desc, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { bookings, events, passes, type Pass } from "@/db/schema";
+import { events, passes, type Pass } from "@/db/schema";
 import { AdminBadge } from "@/components/admin/form-shell";
 import { AddPassIdButton, CancelPassButton, CheckInPassButton, ConfirmPassButton } from "@/components/admin/pass-buttons";
 import { formatDate, pkr, todayISO } from "@/lib/utils";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const wa = (n: string) => n.replace(/\D/g, "").replace(/^0/, "92");
 
-function Row({ p, eventTitle, stayId }: { p: Pass; eventTitle: string | null; stayId?: number }) {
+function Row({ p, eventTitle }: { p: Pass; eventTitle: string | null }) {
   const kycLink = `${siteUrl()}/pass/${p.reference}?email=${encodeURIComponent(p.email)}`;
   const waText =
     p.status === "PENDING"
@@ -27,7 +27,7 @@ function Row({ p, eventTitle, stayId }: { p: Pass; eventTitle: string | null; st
             <span className="font-mono text-[12px] text-ink-soft">· {p.reference}</span>
           </p>
           <p className="text-[13px] mt-0.5">
-            {eventTitle ?? "Community Day Pass"}{p.tierName ? ` · ${p.tierName}` : ""}{p.dayPass ? " (day pass)" : ""} · {formatDate(p.visitDate)} · {p.guestsCount} {p.guestsCount === 1 ? "guest" : "guests"}
+            {eventTitle ?? "Community Day Pass"} · {formatDate(p.visitDate)} · {p.guestsCount} {p.guestsCount === 1 ? "guest" : "guests"}
             {p.amountPkr > 0 ? ` · ${pkr(p.amountPkr)}` : ""}
             {p.paidPkr > 0 ? ` · paid ${pkr(p.paidPkr)}` : ""}
           </p>
@@ -40,10 +40,7 @@ function Row({ p, eventTitle, stayId }: { p: Pass; eventTitle: string | null; st
           </p>
           {p.wantsStay && (
             <p className="text-[12.5px] mt-1.5">
-              🏠 Wants to stay{p.city ? ` (from ${p.city})` : ""}: {p.stayKey === "PRIVATE_ROOM" ? "private room" : "bunk"}, {p.stayNights} nights
-              {p.stayBookingRef ? (
-                <> · held as {stayId ? <Link className="underline underline-offset-2" href={`/admin/bookings/${stayId}`}>{p.stayBookingRef}</Link> : p.stayBookingRef}</>
-              ) : null}
+              🏠 Stay request{p.city ? ` (from ${p.city})` : ""}: {p.stayFrom ? formatDate(p.stayFrom) : "?"} → {p.stayTo ? formatDate(p.stayTo) : "?"}. Share the price on the call; if they agree, add it in Bookings → New booking.
             </p>
           )}
           {p.notes && <p className="text-[12px] text-ink-soft mt-1 whitespace-pre-line">{p.notes}</p>}
@@ -78,8 +75,6 @@ export default async function PassesPage() {
   const rows = await db.select().from(passes).orderBy(passes.visitDate, desc(passes.createdAt)).limit(400);
   const ids = [...new Set(rows.map((r) => r.eventId).filter((x): x is number => x !== null))];
   const evs = ids.length ? await db.select({ id: events.id, title: events.title }).from(events).where(inArray(events.id, ids)) : [];
-  const refs = rows.map((r) => r.stayBookingRef).filter((x): x is string => Boolean(x));
-  const stays = refs.length ? await db.select({ id: bookings.id, ref: bookings.reference }).from(bookings).where(inArray(bookings.reference, refs)) : [];
   const title = (p: Pass) => (p.eventId ? evs.find((e) => e.id === p.eventId)?.title ?? "Event" : null);
 
   const toCall = rows.filter((p) => p.status === "PENDING" && p.visitDate >= today);
@@ -98,7 +93,7 @@ export default async function PassesPage() {
       <div className="mt-3 rounded-2xl border border-line bg-paper">
         {list.length === 0 && <p className="p-5 text-sm text-ink-soft">{empty}</p>}
         {list.map((p) => (
-          <Row key={p.id} p={p} eventTitle={title(p)} stayId={stays.find((b) => b.ref === p.stayBookingRef)?.id} />
+          <Row key={p.id} p={p} eventTitle={title(p)} />
         ))}
       </div>
     </>
@@ -108,7 +103,7 @@ export default async function PassesPage() {
     <div>
       <h1 className="font-display font-extrabold text-3xl tracking-tight">Passes</h1>
       <p className="text-sm text-ink-soft mt-1">
-        Workshop passes (full and day passes) from <Link className="underline" href="/book">/book</Link>. Call or
+        Workshop passes from <Link className="underline" href="/book">/book</Link>. Call or
         WhatsApp each new request, take payment, then press Confirm. Guests add ID from their email link; check them in at the door.
       </p>
       {!ghlConfigured() && (

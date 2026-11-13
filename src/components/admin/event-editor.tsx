@@ -49,9 +49,6 @@ export default function EventEditor({ event }: { event?: Event }) {
     status: event?.status ?? "DRAFT",
     featured: event?.featured ?? false,
     complianceNote: event?.complianceNote ?? "",
-    passTiers: (event?.passTiers ?? [])
-      .map((t) => [t.name, t.pricePkr, t.dayPricePkr ?? "", t.includes, t.note, t.stay ? "stay" : ""].join(" | "))
-      .join("\n"),
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +68,6 @@ export default function EventEditor({ event }: { event?: Event }) {
         fd.set(key, String(f[key]));
       fd.set("capacity", String(f.capacity));
       fd.set("ticketPkr", String(f.ticketPkr));
-      fd.set("passTiers", f.passTiers);
       if (f.residentDiscountPct !== "") fd.set("residentDiscountPct", String(f.residentDiscountPct));
       if (f.featured) fd.set("featured", "on");
       fd.set("outcomes", JSON.stringify(f.outcomes.split("\n").map((s) => s.trim()).filter(Boolean)));
@@ -194,16 +190,6 @@ export default function EventEditor({ event }: { event?: Event }) {
           <label className="label">Resident discount % (blank = site default 25%)</label>
           <input type="number" min={0} max={100} className="field" value={f.residentDiscountPct} onChange={(e) => set("residentDiscountPct", e.target.value)} />
         </div>
-      </div>
-      <div>
-        <label className="label">Passes (one per line): Name | full price | day price (blank = no day pass) | what&apos;s included | note | stay</label>
-        <textarea
-          className="field min-h-28 font-mono text-[12.5px]"
-          value={f.passTiers}
-          onChange={(e) => set("passTiers", e.target.value)}
-          placeholder={"Studio Pass | 15000 | 5000 | Class + studio hours, 1 min film, chai bar | No food · No stay |\nDirector's Cut | 25000 | 8333 | Studio Pass + 1:1 script review, screening, food | No stay |\nThe Residency | 40000 | | Director's Cut + 3 nights stay, roadmap | Men only | stay"}
-        />
-        <p className="text-[11.5px] text-ink-soft mt-1">Blank = one standard pass at the ticket price. Write &quot;stay&quot; at the end if the pass includes overnight stay.</p>
       </div>
       <div>
         <label className="label">Compliance / honesty note (shown publicly)</label>

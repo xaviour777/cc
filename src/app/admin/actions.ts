@@ -22,7 +22,6 @@ import {
   socialPosts,
   studioReservations,
   users,
-  type PassTier,
 } from "@/db/schema";
 import {
   createSession,
@@ -322,25 +321,6 @@ export async function reviewKyc(id: number, status: "APPROVED" | "REJECTED", not
 }
 
 // ---------- Events ----------
-function parsePassTiers(raw: string): PassTier[] {
-  const num = (x: string | undefined) => {
-    const n = Number(String(x ?? "").replace(/[^0-9]/g, ""));
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  };
-  return raw
-    .split("\n")
-    .map((line) => line.split("|").map((x) => x.trim()))
-    .filter((p) => p[0])
-    .map(([name, price, day, includes, note, stay]) => ({
-      name,
-      pricePkr: num(price),
-      dayPricePkr: num(day) || null,
-      includes: includes ?? "",
-      note: note ?? "",
-      stay: /stay|yes/i.test(stay ?? ""),
-    }));
-}
-
 export async function upsertEvent(fd: FormData): Promise<R & { id?: number }> {
   const user = await adminUser();
   if (!user) return fail("Unauthorized");
@@ -388,7 +368,6 @@ export async function upsertEvent(fd: FormData): Promise<R & { id?: number }> {
     status: (["DRAFT", "PUBLISHED", "FULL", "COMPLETED", "CANCELLED"].includes(String(fd.get("status"))) ? String(fd.get("status")) : "DRAFT") as "DRAFT",
     featured: fd.get("featured") === "on",
     complianceNote: String(fd.get("complianceNote") ?? "") || null,
-    passTiers: parsePassTiers(String(fd.get("passTiers") ?? "")),
     updatedAt: new Date(),
   };
   if (id) {

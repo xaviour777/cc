@@ -12,16 +12,6 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-// A pass option on a workshop, e.g. Studio Pass / Director's Cut / Residency.
-export type PassTier = {
-  name: string;
-  pricePkr: number; // full workshop
-  dayPricePkr: number | null; // single-day pass price, null = no day pass
-  includes: string; // short line shown on the card
-  note: string; // e.g. "Men only", "No food · No stay"
-  stay: boolean; // includes overnight stay
-};
-
 // ---------- Enums ----------
 export const roleEnum = pgEnum("role", ["ADMIN", "USER"]);
 export const accommodationKeyEnum = pgEnum("accommodation_key", [
@@ -434,7 +424,6 @@ export const events = pgTable(
     status: eventStatusEnum("status").notNull().default("DRAFT"),
     featured: boolean("featured").notNull().default(false),
     complianceNote: text("compliance_note"),
-    passTiers: jsonb("pass_tiers").$type<PassTier[]>().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -606,8 +595,6 @@ export const passes = pgTable(
     kind: text("kind").notNull().default("DAY_PASS"), // DAY_PASS | EVENT
     eventId: integer("event_id").references(() => events.id, { onDelete: "set null" }),
     registrationId: integer("registration_id"),
-    tierName: text("tier_name"),
-    dayPass: boolean("day_pass").notNull().default(false),
     visitDate: date("visit_date", { mode: "string" }).notNull(),
     name: text("name").notNull(),
     age: integer("age"),
@@ -621,11 +608,10 @@ export const passes = pgTable(
     paidPkr: integer("paid_pkr").notNull().default(0),
     paymentMethod: text("payment_method"),
     status: text("status").notNull().default("PENDING"), // PENDING | CONFIRMED | CHECKED_IN | CANCELLED
-    // Optional stay add-on for guests coming from other cities
+    // Optional stay request for guests coming from other cities (team quotes on call)
     wantsStay: boolean("wants_stay").notNull().default(false),
-    stayKey: text("stay_key"), // SHARED_BUNK | PRIVATE_ROOM
-    stayNights: integer("stay_nights"),
-    stayBookingRef: text("stay_booking_ref"),
+    stayFrom: date("stay_from", { mode: "string" }),
+    stayTo: date("stay_to", { mode: "string" }),
     // ID check before check-in
     kycDocType: text("kyc_doc_type"),
     kycIdLast4: text("kyc_id_last4"),

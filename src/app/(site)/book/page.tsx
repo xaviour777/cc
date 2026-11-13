@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { getPublicEvents, getStayProducts } from "@/lib/data";
-import { getHidePrices, getMinStayNights, getWhatsappNumber } from "@/lib/stays";
+import { getPublicEvents } from "@/lib/data";
+import { getWhatsappNumber } from "@/lib/stays";
 import { getMember } from "@/lib/members";
 import Reveal from "@/components/ui/reveal";
 import PassBooking from "@/components/booking/pass-booking";
@@ -19,16 +19,13 @@ export default async function BookPage({
 }) {
   const sp = await searchParams;
   const today = todayISO();
-  const [allEvents, products, hidePrices, minStay, whatsapp, member] = await Promise.all([
+  const [allEvents, whatsapp, member] = await Promise.all([
     getPublicEvents(),
-    getStayProducts(),
-    getHidePrices(),
-    getMinStayNights(),
     getWhatsappNumber(),
     getMember(),
   ]);
   const events = allEvents
-    .filter((e) => e.status === "PUBLISHED" && (!e.startDate || e.startDate >= today))
+    .filter((e) => e.status === "PUBLISHED" && (!e.startDate || (e.endDate ?? e.startDate) >= today))
     .map((e) => ({
       slug: e.slug,
       title: e.title,
@@ -37,16 +34,10 @@ export default async function BookPage({
       endDate: e.endDate,
       timeLabel: e.timeLabel,
       excerpt: e.excerpt,
-      tiers: e.passTiers ?? [],
+      durationLabel: e.durationLabel,
       ticketPkr: e.ticketPkr,
       seatsLeft: Math.max(0, e.capacity - e.seatsTaken),
     }));
-  const stays = products.map((p) => ({
-    key: p.key,
-    name: p.name,
-    nightlyPkr: hidePrices ? 0 : p.nightlyPkr,
-    weeklyPkr: hidePrices ? null : p.weeklyPkr,
-  }));
   const initialEvent = events.find((e) => e.slug === sp.event)?.slug;
 
   return (
@@ -60,15 +51,13 @@ export default async function BookPage({
             <span className="serif-em normal-case">Meet your people.</span>
           </h1>
           <p className="lede mt-5">
-            Pick a workshop, choose your pass (full or one day), fill one short form. Our team
-            calls you on WhatsApp to confirm. No payment now.
+            Pick your workshop and fill one short form. Our team calls you on WhatsApp to
+            confirm. Coming from another city? Ask to stay with us in the same form.
           </p>
         </Reveal>
         <div className="mt-12">
           <PassBooking
             events={events}
-            stays={stays}
-            minStay={minStay}
             whatsapp={whatsapp}
             initialEvent={initialEvent}
             member={member ? { name: member.name, email: member.email, phone: member.phone ?? "" } : null}

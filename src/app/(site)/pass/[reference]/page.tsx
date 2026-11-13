@@ -39,7 +39,7 @@ export default async function PassPage({
     );
   }
   const ev = p.eventId ? (await db.select().from(events).where(eq(events.id, p.eventId)).limit(1))[0] : null;
-  const what = `${ev ? ev.title : "Content Colony"}${p.tierName ? ` · ${p.tierName}` : ""}${p.dayPass ? " (day pass)" : ""}`;
+  const what = ev ? ev.title : "Content Colony pass";
 
   return (
     <div className="px-5 md:px-10 py-14 md:py-20">
@@ -54,8 +54,7 @@ export default async function PassPage({
             {p.amountPkr > 0 && <p>{pkr(p.amountPkr)}{p.paidPkr > 0 ? ` · paid ${pkr(p.paidPkr)}` : ""}</p>}
             {p.wantsStay && (
               <p className="flex items-center gap-2 sm:col-span-2">
-                <Home size={15} /> Stay: {p.stayKey === "PRIVATE_ROOM" ? "Private room" : "Shared bunk"}, {p.stayNights} nights
-                {p.stayBookingRef ? ` · ${p.stayBookingRef}` : ""}
+                <Home size={15} /> Stay request: {p.stayFrom ? formatDate(p.stayFrom) : ""} → {p.stayTo ? formatDate(p.stayTo) : ""} · we confirm on the call
               </p>
             )}
           </div>
@@ -71,13 +70,6 @@ export default async function PassPage({
             email={p.email}
             uploaded={p.kycUploadedAt ? { docType: p.kycDocType ?? "ID", fileName: p.kycFileName ?? "" } : null}
           />
-        )}
-        {p.stayBookingRef && (
-          <p className="text-center text-sm">
-            <Link className="u-link font-medium" href={`/booking/${p.stayBookingRef}?email=${encodeURIComponent(p.email)}`}>
-              Open your stay booking ({p.stayBookingRef})
-            </Link>
-          </p>
         )}
       </div>
     </div>
