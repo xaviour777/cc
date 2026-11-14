@@ -17,10 +17,17 @@ export default function WorkshopCta({ event }: { event: CtaEvent }) {
     ? `${formatDate(event.startDate)}${event.endDate && event.endDate !== event.startDate ? ` – ${formatDate(event.endDate)}` : ""}`
     : event.timeLabel ?? "Dates announced soon";
 
+  // Multi-day workshops read as a cohort, e.g. "3-day cohort".
+  const days =
+    event.startDate && event.endDate && event.endDate > event.startDate
+      ? Math.round((Date.parse(event.endDate) - Date.parse(event.startDate)) / 86_400_000) + 1
+      : 1;
+  const kicker = days > 1 ? `${days}-day cohort` : "Live workshop";
+
   return (
     <aside dir="ltr" lang="en" className="rounded-3xl bg-ink text-paper p-6 md:p-7 flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
       <div>
-        <span className="kicker text-paper/55 block">Live workshop</span>
+        <span className="kicker text-paper/55 block">{kicker}</span>
         <span className="font-display font-bold text-xl md:text-2xl tracking-tight block mt-2">{event.title}</span>
         <span className="text-paper/70 text-sm mt-2 inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           <CalendarDays size={14} /> {when}
