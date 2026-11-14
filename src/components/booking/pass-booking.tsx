@@ -213,7 +213,7 @@ export default function PassBooking({
   return (
     <div>
       {/* Step 1: events & workshops */}
-      <p className="kicker text-ink-soft">Events &amp; workshops</p>
+      <p id="events" className="scroll-mt-28 kicker text-ink-soft">Events &amp; workshops</p>
       <h2 className="display-md mt-2 mb-6">What&apos;s coming up.</h2>
       <div className="space-y-3">
         {events.map((e) => {
@@ -243,7 +243,6 @@ export default function PassBooking({
                 </div>
                 <div className="sm:text-right shrink-0">
                   <p className="font-display font-extrabold text-3xl tracking-tight">{e.ticketPkr > 0 ? pkr(e.ticketPkr) : "Free"}</p>
-                  {e.ticketPkr > 0 && <p className="text-xs text-ink-soft">per person · {e.durationLabel ?? "full workshop"}</p>}
                   <button
                     type="button"
                     disabled={full}
@@ -313,7 +312,7 @@ export default function PassBooking({
           <p className="kicker text-ink-soft">Your details</p>
           <p className="font-semibold mt-2">
             {[
-              event ? `${event.title} · ${event.ticketPkr > 0 ? `${pkr(event.ticketPkr)} per person` : "Free"}` : null,
+              event ? `${event.title} · ${event.ticketPkr > 0 ? pkr(event.ticketPkr) : "Free"}` : null,
               wantsStay ? `${room || "Stay"} request · price shared on WhatsApp` : null,
             ]
               .filter(Boolean)

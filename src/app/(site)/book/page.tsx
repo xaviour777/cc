@@ -4,6 +4,7 @@ import { getWhatsappNumber } from "@/lib/stays";
 import { getMember } from "@/lib/members";
 import Reveal from "@/components/ui/reveal";
 import PassBooking from "@/components/booking/pass-booking";
+import BelieveHero from "@/components/site/believe-hero";
 import { todayISO } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -41,6 +42,8 @@ export default async function BookPage({
   const initialEvent = events.find((e) => e.slug === sp.event)?.slug;
 
   return (
+    <>
+    <BelieveHero primaryHref="#events" primaryLabel="Book now" secondaryHref="#stay" />
     <div className="px-5 md:px-10 py-14 md:py-20">
       <div className="mx-auto max-w-3xl">
         <Reveal className="text-center">
@@ -67,6 +70,7 @@ export default async function BookPage({
         </div>
       </div>
     </div>
+    </>
   );
 }
 
