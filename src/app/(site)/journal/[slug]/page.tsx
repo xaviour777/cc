@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Clock3 } from "lucide-react";
-import { getArticleBySlug, getArticles, getEventBySlug } from "@/lib/data";
-import { cx, formatDate } from "@/lib/utils";
+import { ArrowLeft, Clock3 } from "lucide-react";
+import { getArticleBySlug, getArticles, getEventBySlug, getPublicEvents } from "@/lib/data";
+import { cx, formatDate, todayISO } from "@/lib/utils";
 import Reveal from "@/components/ui/reveal";
 import ArticleBody from "@/components/journal/article-body";
 import ArticleCard from "@/components/site/article-card";
+import WorkshopCta from "@/components/journal/workshop-cta";
 
 export async function generateMetadata({
   params,
@@ -43,7 +44,15 @@ export default async function ArticlePage({
   const { article, translation, category, availableLangs } = data;
   const isUr = translation.lang === "ur";
   const related = (await getArticles(translation.lang, 4)).filter((a) => a.slug !== slug).slice(0, 3);
-  const relatedEvent = article.relatedEventSlug ? await getEventBySlug(article.relatedEventSlug) : null;
+  // Mid-article booking card: the article's own workshop, else the next upcoming workshop.
+  const today = todayISO();
+  const isOpen = (e: { status: string; startDate: string | null; endDate: string | null }) =>
+    e.status === "PUBLISHED" && (!e.startDate || (e.endDate ?? e.startDate) >= today);
+  const linked = article.relatedEventSlug ? await getEventBySlug(article.relatedEventSlug) : null;
+  const ctaEvent =
+    linked && isOpen(linked)
+      ? linked
+      : (await getPublicEvents()).find((e) => e.kind === "WORKSHOP" && isOpen(e)) ?? null;
 
   return (
     <div className="px-5 md:px-10 py-10 md:py-16">
@@ -106,31 +115,13 @@ export default async function ArticlePage({
           </Reveal>
         )}
 
-        <Reveal delay={140} className="mt-8">
+        {/* No reveal animation here: long articles are taller than the screen and would stay hidden. */}
+        <div className="mt-8">
           <div lang={isUr ? "ur" : undefined} dir={isUr ? "rtl" : undefined}>
-            <ArticleBody content={translation.content} />
+            <ArticleBody content={translation.content} cta={ctaEvent ? <WorkshopCta event={ctaEvent} /> : undefined} />
           </div>
-        </Reveal>
+        </div>
 
-        {relatedEvent && (
-          <Reveal className="mt-14">
-            <Link
-              href={`/events/${relatedEvent.slug}`}
-              className="group flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-ink text-paper p-7 md:p-9"
-            >
-              <div>
-                <p className="kicker text-paper/50">Related workshop</p>
-                <p className="font-display font-bold text-xl md:text-2xl mt-2 tracking-tight">
-                  {relatedEvent.title}
-                </p>
-                <p className="text-paper/60 text-sm mt-1.5">{relatedEvent.excerpt.slice(0, 110)}…</p>
-              </div>
-              <span className="inline-flex items-center gap-2 font-semibold group-hover:gap-3 transition-all">
-                Save a seat <ArrowUpRight size={17} />
-              </span>
-            </Link>
-          </Reveal>
-        )}
       </div>
 
       {related.length > 0 && (
