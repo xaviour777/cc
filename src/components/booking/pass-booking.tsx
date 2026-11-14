@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  BedDouble,
+  DoorOpen,
   CalendarDays,
   Check,
   Clock3,
@@ -17,6 +19,13 @@ import {
 } from "lucide-react";
 import { submitPass } from "@/lib/pass-actions";
 import { addDaysISO, cx, pkr, todayISO } from "@/lib/utils";
+import { IMG } from "@/lib/images";
+
+type Room = "Bunker" | "Private Room";
+const ROOMS: { key: Room; title: string; label: string; line: string; image: string; Icon: typeof BedDouble }[] = [
+  { key: "Bunker", title: "The Bunker", label: "Shared living · 8 bunks", line: "Your own bunk in a room full of people who are building something too.", image: IMG.bunkRoom, Icon: BedDouble },
+  { key: "Private Room", title: "Private Room", label: "Private living · 4 rooms", line: "A quiet room of your own, with the colony right outside your door.", image: IMG.privateRoom, Icon: DoorOpen },
+];
 
 type EventOption = {
   slug: string;
@@ -46,16 +55,20 @@ export default function PassBooking({
   whatsapp,
   initialEvent,
   initialStay = false,
+  initialRoom,
   member,
 }: {
   events: EventOption[];
   whatsapp: string;
   initialEvent?: string;
   initialStay?: boolean;
+  initialRoom?: Room;
   member: { name: string; email: string; phone: string } | null;
 }) {
-  const [stayOnly, setStayOnly] = useState(initialStay && !initialEvent);
-  const [eventSlug, setEventSlug] = useState(initialEvent ?? (events.length === 1 && !initialStay ? events[0].slug : ""));
+  const startStay = (initialStay || Boolean(initialRoom)) && !initialEvent;
+  const [stayOnly, setStayOnly] = useState(startStay);
+  const [room, setRoom] = useState<Room | "">(initialRoom ?? "");
+  const [eventSlug, setEventSlug] = useState(initialEvent ?? (events.length === 1 && !startStay ? events[0].slug : ""));
   const [name, setName] = useState(member?.name ?? "");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -64,9 +77,9 @@ export default function PassBooking({
   const [sameWa, setSameWa] = useState(true);
   const [email, setEmail] = useState(member?.email ?? "");
   const [guests, setGuests] = useState(1);
-  const [wantsStay, setWantsStay] = useState(initialStay && !initialEvent);
-  const [stayFrom, setStayFrom] = useState(initialStay && !initialEvent ? addDaysISO(todayISO(), 1) : "");
-  const [stayTo, setStayTo] = useState(initialStay && !initialEvent ? addDaysISO(todayISO(), 4) : "");
+  const [wantsStay, setWantsStay] = useState(startStay);
+  const [stayFrom, setStayFrom] = useState(startStay ? addDaysISO(todayISO(), 1) : "");
+  const [stayTo, setStayTo] = useState(startStay ? addDaysISO(todayISO(), 4) : "");
   const [city, setCity] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [busy, setBusy] = useState(false);
@@ -75,9 +88,9 @@ export default function PassBooking({
 
   const event = events.find((e) => e.slug === eventSlug) ?? null;
 
-  const chooseStayOnly = () => {
-    setStayOnly(true);
-    setEventSlug("");
+  const chooseRoom = (r: Room) => {
+    setRoom(r);
+    if (!event) setStayOnly(true);
     setWantsStay(true);
     setError(null);
     if (!stayFrom) {
@@ -88,6 +101,12 @@ export default function PassBooking({
   };
 
   const choose = (slug: string) => {
+    if (eventSlug === slug) {
+      // Tap again to unselect; a chosen room keeps the form open as a stay request.
+      setEventSlug("");
+      setStayOnly(Boolean(room));
+      return;
+    }
     setStayOnly(false);
     setEventSlug(slug);
     setError(null);
@@ -129,7 +148,7 @@ export default function PassBooking({
         whatsapp: sameWa ? phone : whats,
         email,
         guestsCount: guests,
-        stay: wantsStay || stayOnly ? { from: stayFrom, to: stayTo, city } : null,
+        stay: wantsStay || stayOnly ? { from: stayFrom, to: stayTo, city, room: room || undefined } : null,
         utm,
         honeypot,
       });
@@ -193,7 +212,9 @@ export default function PassBooking({
 
   return (
     <div>
-      {/* Step 1: the workshop */}
+      {/* Step 1: events & workshops */}
+      <p className="kicker text-ink-soft">Events &amp; workshops</p>
+      <h2 className="display-md mt-2 mb-6">What&apos;s coming up.</h2>
       <div className="space-y-3">
         {events.map((e) => {
           const active = eventSlug === e.slug;
@@ -229,35 +250,13 @@ export default function PassBooking({
                     onClick={() => choose(e.slug)}
                     className={cx("btn mt-4", active ? "btn-outline" : "btn-primary")}
                   >
-                    {active ? <><Check size={15} /> Selected</> : <>Book pass <ArrowRight size={15} /></>}
+                    {active ? <><Check size={15} /> Selected</> : <>{e.ticketPkr > 0 ? "Book pass" : "Join free"} <ArrowRight size={15} /></>}
                   </button>
                 </div>
               </div>
             </div>
           );
         })}
-        <div
-          id="stay"
-          className={cx(
-            "scroll-mt-28 rounded-3xl border p-6 md:p-7 transition-colors",
-            stayOnly ? "border-ink bg-mist" : "border-line bg-paper"
-          )}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center gap-5 justify-between">
-            <div className="flex-1">
-              <h2 className="font-display font-bold text-2xl tracking-tight inline-flex items-center gap-2">
-                <Home size={20} /> Sirf rehna hai?
-              </h2>
-              <p className="text-[14.5px] text-ink-soft mt-2 leading-relaxed">
-                Bunks and private rooms at the Colony. Send a stay request with your dates and we&apos;ll
-                WhatsApp you the price and availability.
-              </p>
-            </div>
-            <button type="button" onClick={chooseStayOnly} className={cx("btn shrink-0", stayOnly ? "btn-outline" : "btn-primary")}>
-              {stayOnly ? <><Check size={15} /> Selected</> : <>Request a stay <ArrowRight size={15} /></>}
-            </button>
-          </div>
-        </div>
         {events.length === 0 && (
           <p className="rounded-2xl bg-mist p-6 text-sm text-center">
             No workshop is open for booking right now.{" "}
@@ -273,12 +272,52 @@ export default function PassBooking({
         )}
       </div>
 
+      {/* Stay: the two room types */}
+      <div id="stay" className="scroll-mt-28 mt-12">
+        <p className="kicker text-ink-soft">Stay at the Colony</p>
+        <h2 className="display-md mt-2">Pick your corner.</h2>
+        <div className="grid sm:grid-cols-2 gap-4 mt-6">
+          {ROOMS.map((r) => {
+            const active = room === r.key;
+            return (
+              <div key={r.key} className={cx("rounded-3xl border overflow-hidden transition-colors flex flex-col", active ? "border-ink bg-mist" : "border-line bg-paper")}>
+                <div className="img-frame aspect-[16/10]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={r.image} alt={r.title} loading="lazy" className="w-full h-full object-cover" />
+                </div>
+                <div className="p-5 md:p-6 flex-1 flex flex-col">
+                  <div className="flex items-center gap-2 text-ink-soft">
+                    <r.Icon size={16} />
+                    <span className="text-[11.5px] tracking-[0.16em] uppercase font-medium">{r.label}</span>
+                  </div>
+                  <h3 className="font-display font-bold text-xl mt-2 tracking-tight">{r.title}</h3>
+                  <p className="text-[14px] text-ink-soft mt-1.5 leading-relaxed">{r.line}</p>
+                  <div className="mt-auto pt-4 flex items-center justify-between gap-3">
+                    <Link href={`/stay?room=${r.key === "Bunker" ? "bunker" : "private"}`} className="u-link text-sm font-medium">
+                      Full details
+                    </Link>
+                    <button type="button" onClick={() => chooseRoom(r.key)} className={cx("btn !py-2.5 !px-5 text-sm", active ? "btn-outline" : "btn-primary")}>
+                      {active ? <><Check size={15} /> Selected</> : <>Book now <ArrowRight size={15} /></>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Step 2: the form */}
       {(event || stayOnly) && (
         <form id="pass-form" onSubmit={submit} className="scroll-mt-28 mt-6 rounded-3xl border border-line bg-paper p-6 md:p-8">
           <p className="kicker text-ink-soft">Your details</p>
           <p className="font-semibold mt-2">
-            {event ? `${event.title} · ${event.ticketPkr > 0 ? `${pkr(event.ticketPkr)} per person` : "Free"}` : "Stay request · price shared on WhatsApp"}
+            {[
+              event ? `${event.title} · ${event.ticketPkr > 0 ? `${pkr(event.ticketPkr)} per person` : "Free"}` : null,
+              wantsStay ? `${room || "Stay"} request · price shared on WhatsApp` : null,
+            ]
+              .filter(Boolean)
+              .join(" + ")}
           </p>
 
           <div className="grid sm:grid-cols-2 gap-3 mt-4">
@@ -368,7 +407,7 @@ export default function PassBooking({
                       This is just a request. Our team will share the details and confirm your bed on the call.
                     </p>
                     {!stayOnly && (
-                      <button type="button" onClick={() => setWantsStay(false)} className="text-[12.5px] underline underline-offset-2 text-paper/70">
+                      <button type="button" onClick={() => { setWantsStay(false); setRoom(""); }} className="text-[12.5px] underline underline-offset-2 text-paper/70">
                         No thanks, just the workshop
                       </button>
                     )}
