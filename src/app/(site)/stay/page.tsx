@@ -73,8 +73,7 @@ export default async function StayPage({
               <span className="serif-em normal-case">in you.</span>
             </h1>
             <p className="lede mt-6 max-w-xl">
-              Content Colony isn&apos;t a place you book. It&apos;s a home you ask to join. If you&apos;re a
-              creator, from any city, and you believe you can build something real, there&apos;s a bed
+              If you&apos;re a creator, from any city, and you believe you can build something real, there&apos;s a bed
               here with your name on it.
             </p>
             <p className="text-ink-soft mt-4 max-w-xl leading-relaxed">
@@ -163,7 +162,7 @@ export default async function StayPage({
                           scroll={false}
                           className="btn btn-primary !py-2.5 !px-5 text-sm"
                         >
-                          Request this space <ArrowRight size={15} />
+                          Book now <ArrowRight size={15} />
                         </Link>
                       </div>
                     </div>
@@ -178,18 +177,6 @@ export default async function StayPage({
       {/* ---------- REQUEST ---------- */}
       <section id="request" className="scroll-mt-24 px-5 md:px-10 py-16 md:py-24">
         <div className="mx-auto max-w-3xl">
-          <Reveal className="text-center mb-10">
-            <p className="kicker text-ink-soft">Request to live here</p>
-            <h2 className="display-lg mt-3">
-              Your seat at the table
-              <br />
-              <span className="serif-em normal-case">is one form away.</span>
-            </h2>
-            <p className="lede mt-4">
-              Pick your dates and tell us a little about yourself. Our team reads every request
-              personally and gets back to you on WhatsApp.
-            </p>
-          </Reveal>
           <StayRequest key={initialRoom} initialRoom={initialRoom} whatsapp={whatsapp} minStay={minStay} member={member ? { name: member.name, email: member.email, phone: member.phone ?? "" } : null} />
         </div>
       </section>
