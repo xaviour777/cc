@@ -223,7 +223,13 @@ export async function uploadPassKyc(formData: FormData) {
 
   const ext = file.type === "application/pdf" ? "pdf" : file.type.split("/")[1];
   const name = `pass-${pass.id}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
-  const filePath = await saveKycFile(name, file.type, Buffer.from(await file.arrayBuffer()));
+  let filePath: string;
+  try {
+    filePath = await saveKycFile(name, file.type, Buffer.from(await file.arrayBuffer()));
+  } catch (err) {
+    console.error("Pass ID upload failed", err);
+    return { ok: false as const, error: "We couldn't save your ID right now. Please try again in a minute, or send it to us on WhatsApp." };
+  }
   await db
     .update(passes)
     .set({
