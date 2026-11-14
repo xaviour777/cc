@@ -104,6 +104,14 @@ body {
   font-family: var(--font-urdu);
   letter-spacing: 0;
 }
+/* English blocks (e.g. the workshop card) inside an Urdu article keep the Latin fonts. */
+[lang="ur"] [lang="en"] {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  direction: ltr;
+  line-height: 1.5;
+}
+[lang="ur"] [lang="en"] .font-display { font-family: var(--font-archivo), var(--font-inter), sans-serif; letter-spacing: -0.01em; }
+[lang="ur"] [lang="en"] .kicker { font-family: var(--font-inter), sans-serif; letter-spacing: 0.28em; }
 
 /* ---------- Motion ---------- */
 .reveal {
@@ -247,6 +255,7 @@ body {
   line-height: 1.45;
 }
 .prose-colony hr { border: 0; border-top: 1px solid var(--line); margin: 3em 0; }
+.prose-colony strong { color: var(--ink); font-weight: 650; }
 .prose-colony .embed {
   margin: 2.4em 0;
   aspect-ratio: 16 / 9;
