@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, HeartHandshake, Scale, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, HeartHandshake, Sparkles } from "lucide-react";
 import { IMG } from "@/lib/images";
 import Reveal from "@/components/ui/reveal";
-import { getSetting } from "@/lib/stays";
 
 export const metadata: Metadata = {
   title: "About — why Content Colony exists",
-  description: "The story behind Lahore's creator co-living community — and how we keep it safe, legal and warm.",
+  description: "The story behind Lahore's creator co-living community — and how we keep it warm.",
 };
 
 export default async function AboutPage() {
-  const legal = await getSetting<string>("legalNotice", "");
   return (
     <div className="px-5 md:px-10 py-14 md:py-20">
       <div className="mx-auto max-w-[1440px]">
@@ -54,11 +52,10 @@ export default async function AboutPage() {
           </Reveal>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4 mt-16 max-w-5xl mx-auto">
+        <div className="grid sm:grid-cols-2 gap-4 mt-16 max-w-3xl mx-auto">
           {[
             { Icon: HeartHandshake, t: "Community-first", d: "Every decision starts with 'does this bring people closer?'" },
             { Icon: Sparkles, t: "Craft over clout", d: "We celebrate finished work, not follower counts." },
-            { Icon: Scale, t: "Honest pricing", d: "Per-night rates, real packages, no hidden extras." },
           ].map(({ Icon, t, d }, i) => (
             <Reveal key={t} delay={i * 70}>
               <div className="rounded-3xl bg-mist p-6 h-full">
@@ -69,25 +66,6 @@ export default async function AboutPage() {
             </Reveal>
           ))}
         </div>
-
-        <Reveal className="max-w-5xl mx-auto mt-14">
-          <div className="rounded-3xl border border-line p-6 md:p-8 flex gap-4 items-start">
-            <ShieldCheck size={22} className="shrink-0 mt-1" />
-            <div>
-              <h2 className="font-display font-bold text-xl tracking-tight">Safety, identity & compliance</h2>
-              <p className="text-sm text-ink-soft mt-3 leading-relaxed">
-                Overnight guests complete ID verification (CNIC / NICOP / passport)
-                and sign a stay agreement before check-in. Punjab temporary-resident
-                and Hotel Eye guest reporting run through a tracked manual checklist
-                in our admin until official integrations are authorized. Guest-house
-                registration and permitted-use approvals are being finalized with
-                the relevant Lahore authorities — we&apos;d rather be careful than
-                quick.
-              </p>
-              <p className="text-[12px] text-ink-soft mt-3">{legal}</p>
-            </div>
-          </div>
-        </Reveal>
 
         <Reveal className="text-center mt-20">
           <h2 className="display-lg">

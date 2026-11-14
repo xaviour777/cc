@@ -10,8 +10,10 @@ const PREFIX = "supabase:";
 const LOCAL_DIR = path.join(process.cwd(), "storage", "kyc");
 
 function supabase() {
-  const url = process.env.SUPABASE_URL?.trim().replace(/\/$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  // Tolerate values pasted with quotes or a trailing newline in the Vercel dashboard.
+  const clean = (v?: string) => v?.trim().replace(/^["']|["']$/g, "").trim();
+  const url = clean(process.env.SUPABASE_URL)?.replace(/\/$/, "");
+  const key = clean(process.env.SUPABASE_SERVICE_ROLE_KEY);
   return url && key ? { url, key } : null;
 }
 
@@ -19,7 +21,8 @@ function supabase() {
 // "sb_secret_..." keys are not JWTs: sending one as a Bearer token makes
 // Storage reject the request ("Invalid Compact JWS"), so only apikey is sent.
 function authHeaders(key: string): Record<string, string> {
-  return key.startsWith("sb_") ? { apikey: key } : { Authorization: `Bearer ${key}`, apikey: key };
+  const isJwt = /^[\w-]+\.[\w-]+\.[\w-]+$/.test(key);
+  return isJwt ? { Authorization: `Bearer ${key}`, apikey: key } : { apikey: key };
 }
 
 /** Saves the file and returns the value to store in kyc_documents.file_path. */

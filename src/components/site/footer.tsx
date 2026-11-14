@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/icons";
 
 export default async function Footer() {
-  const [ig, tt, yt, fb, li, wa, email, legal] = await Promise.all([
+  const [ig, tt, yt, fb, li, wa, email] = await Promise.all([
     getSetting<string>("instagram", ""),
     getSetting<string>("tiktok", ""),
     getSetting<string>("youtube", ""),
@@ -20,7 +20,6 @@ export default async function Footer() {
     getSetting<string>("linkedin", ""),
     getSetting<string>("whatsappNumber", ""),
     getSetting<string>("contactEmail", "hello@contentcolony.live"),
-    getSetting<string>("legalNotice", ""),
   ]);
 
   const socials = [
@@ -135,7 +134,6 @@ export default async function Footer() {
 
         <div className="mt-14 pt-6 border-t border-line flex flex-col md:flex-row justify-between gap-3 text-[12.5px] text-ink-soft">
           <p>© {new Date().getFullYear()} Content Colony. Your people are here.</p>
-          <p className="max-w-xl">{legal}</p>
         </div>
       </div>
     </footer>
