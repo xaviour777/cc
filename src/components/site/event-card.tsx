@@ -15,7 +15,7 @@ export default function EventCard({
 }) {
   const dateLabel = event.startDate
     ? `${formatDate(event.startDate)}${event.endDate && event.endDate !== event.startDate ? ` – ${formatDate(event.endDate)}` : ""}`
-    : "Dates announced soon";
+    : event.timeLabel ?? "Dates announced soon";
   const seatsLeft = Math.max(0, event.capacity - event.seatsTaken);
 
   return (
@@ -79,14 +79,7 @@ export default function EventCard({
           )}
           <div className="flex items-center justify-between mt-5 pt-4 border-t border-line">
             <p className="font-semibold text-sm">
-              {event.ticketPkr > 0 ? (
-                <>
-                  {pkr(event.ticketPkr)}
-                  <span className="text-ink-soft font-normal"> · residents save {event.residentDiscountPct ?? 25}%</span>
-                </>
-              ) : (
-                "Community event"
-              )}
+              {event.ticketPkr > 0 ? pkr(event.ticketPkr) : "Free · community event"}
             </p>
             <span className="inline-flex items-center gap-1.5 text-sm font-medium group-hover:gap-2.5 transition-all">
               Details <ArrowUpRight size={15} />

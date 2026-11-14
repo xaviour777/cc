@@ -45,7 +45,7 @@ const shortDate = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
 function dateRange(e: EventOption) {
-  if (!e.startDate) return "Dates announced soon";
+  if (!e.startDate) return e.timeLabel ?? "Dates announced soon";
   const end = e.endDate && e.endDate > e.startDate ? e.endDate : null;
   return end ? `${shortDate(e.startDate)} – ${shortDate(end)}` : shortDate(e.startDate);
 }
@@ -233,7 +233,7 @@ export default function PassBooking({
                   <h2 className="font-display font-bold text-2xl tracking-tight">{e.title}</h2>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-ink-soft">
                     <span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> {dateRange(e)}</span>
-                    {e.timeLabel && <span className="inline-flex items-center gap-1.5"><Clock3 size={14} /> {e.timeLabel}</span>}
+                    {e.timeLabel && e.startDate && <span className="inline-flex items-center gap-1.5"><Clock3 size={14} /> {e.timeLabel}</span>}
                     <span className="inline-flex items-center gap-1.5"><Users size={14} /> {full ? "Fully booked" : `${e.seatsLeft} seats left`}</span>
                   </div>
                   {e.excerpt && <p className="text-[14.5px] text-ink-soft mt-3 leading-relaxed line-clamp-3">{e.excerpt}</p>}
@@ -377,14 +377,14 @@ export default function PassBooking({
                 <Home size={19} />
               </span>
               <div className="flex-1">
-                <p className="font-display font-bold text-xl tracking-tight">{stayOnly ? "Kab aa rahe ho?" : "Door shehar se aa rahe ho?"}</p>
+                <p className="font-display font-bold text-xl tracking-tight">{stayOnly ? "When are you arriving?" : "Coming from another city?"}</p>
                 <p className={cx("text-[14.5px] mt-2 leading-relaxed", wantsStay ? "text-paper/75" : "text-ink-soft")}>
-                  Hotel dhoondne ki tension chhoro. {stayOnly ? "Kuch din" : "Workshop ke din"} hamare ghar, Content Colony mein raho:
-                  subah ki chai, raat ki gup-shup, aur apne jaise creators ke saath. Ajnabi ban kar aao, dost ban kar jao.
+                  Skip the hotel. Stay at the Colony: morning chai, late-night ideas, and people who build like you.
+                  Arrive a stranger, leave a friend.
                 </p>
                 {!wantsStay ? (
                   <button type="button" onClick={openStay} className="btn btn-primary !py-2.5 !px-5 text-sm mt-4">
-                    <Sparkles size={15} /> Haan, mujhe bhi rehna hai
+                    <Sparkles size={15} /> Yes, I&apos;d love to stay
                   </button>
                 ) : (
                   <div className="mt-5 space-y-3">
@@ -403,7 +403,7 @@ export default function PassBooking({
                       <input className="field !bg-paper !text-ink" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Karachi, Islamabad, Multan…" />
                     </div>
                     <p className="text-[13px] text-paper/70">
-                      This is just a request. Our team will share the details and confirm your bed on the call.
+                      Just a request. We&apos;ll confirm your bed on the call.
                     </p>
                     {!stayOnly && (
                       <button type="button" onClick={() => { setWantsStay(false); setRoom(""); }} className="text-[12.5px] underline underline-offset-2 text-paper/70">

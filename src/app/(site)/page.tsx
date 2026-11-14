@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { IMG, CREATORS } from "@/lib/images";
 import { getArticles, getPublicEvents, getSocialPosts, getStayProducts } from "@/lib/data";
-import { getMinStayNights } from "@/lib/stays";
 import { pkr } from "@/lib/utils";
 import Reveal from "@/components/ui/reveal";
 import EventCard from "@/components/site/event-card";
@@ -26,12 +25,11 @@ import ReelGrid from "@/components/site/reel-grid";
 import JoinForm from "@/components/forms/join-form";
 
 export default async function HomePage() {
-  const [products, events, articlesList, reels, minStay] = await Promise.all([
+  const [products, events, articlesList, reels] = await Promise.all([
     getStayProducts(),
     getPublicEvents(),
     getArticles("en", 3),
     getSocialPosts(),
-    getMinStayNights(),
   ]);
   // Stays are request-only for now: prices are shared on WhatsApp.
   const hidePrices = true;
@@ -200,9 +198,6 @@ export default async function HomePage() {
                           30 nights · {pkr(p.monthlyPkr)}
                         </span>
                       )}
-                      <span className="text-[12px] bg-mist rounded-full px-3 py-1.5">
-                        Min {minStay} nights
-                      </span>
                     </div>
                     <div className="flex items-center justify-between mt-6 pt-5 border-t border-line">
                       <p>
