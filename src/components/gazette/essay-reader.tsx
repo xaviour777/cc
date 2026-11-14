@@ -27,6 +27,9 @@ export default function EssayReader({ english, urdu }: { english: ReactNode; urd
               onClick={() => setMode(m.key)}
               className={cx(
                 "gz-label px-4 py-1.5 transition-colors",
+                m.key === "both" && "hidden md:inline-block",
+                // On phones "both" reads as English, with a simple English / اردو switch.
+                mode === "both" && m.key === "en" && "max-md:bg-ink max-md:text-paper",
                 mode === m.key ? "bg-ink text-paper" : "hover:bg-line"
               )}
             >
@@ -47,7 +50,7 @@ export default function EssayReader({ english, urdu }: { english: ReactNode; urd
         )}
         {mode !== "ur" && <article className="space-y-6 md:pr-4">{english}</article>}
         {mode !== "en" && (
-          <article lang="ur" dir="rtl" className="space-y-6 md:pl-4">
+          <article lang="ur" dir="rtl" className={cx("space-y-6 md:pl-4", mode === "both" && "hidden md:block")}>
             {urdu}
           </article>
         )}

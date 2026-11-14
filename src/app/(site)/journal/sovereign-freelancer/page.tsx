@@ -28,39 +28,6 @@ const PLATES = [
   { img: IMG.color, en: "Color Grading Suite", ur: "کلر گریڈنگ روم", alt: "A colour grading setup with dual monitors" },
 ];
 
-const PILLARS = [
-  {
-    no: "01 // Microgrid",
-    tag: "بلاتعطل توانائی",
-    title: "Zero-Downtime Microgrid",
-    body: "66kVA dedicated automated backup coupled with synchronous lithium solar banks. Never drop a DaVinci render or live export during load shedding in the Lahore summer.",
-    urTitle: "خودکار سولر و جنریٹر سسٹم",
-    urBody: "۶۶ کے وی اے خودکار جنریٹر اور سولر مائیکرو گرڈ۔ لیسکو کی طویل بندش کے دوران بھی رینڈرنگ اور لائیو سٹریمنگ کا تسلسل کبھی نہیں ٹوٹتا۔",
-    stat: "Uptime: 99.98%",
-    urStat: "توانائی: مکمل محفوظ",
-  },
-  {
-    no: "02 // Bandwidth",
-    tag: "دوہرا فائبر نیٹ ورک",
-    title: "1Gbps Redundant Pipeline",
-    body: "Direct StormFiber and Nayatel active failover lines with unthrottled international peering. Ship 8K ProRes sequences and huge archives straight to London and New York.",
-    urTitle: "۱ جی بی پی ایس دوہرا فائبر",
-    urBody: "ہائی اسپیڈ سٹارم فائبر اور نیا ٹیل کا بیک اپ۔ ۸ کے اور پرو ریس فوٹیج منٹوں میں بغیر تعطل بیرونی پروڈکشن ہاؤسز تک منتقل کریں۔",
-    stat: "Speed: Symmetric 1Gbps",
-    urStat: "رفتار: نان اسٹاپ فائبر",
-  },
-  {
-    no: "03 // Collective",
-    tag: "تخلیقی رفاقت",
-    title: "Collective Guild Equity",
-    body: "Weekly Friday chai feasts, cross-border client pitch clinics, and cooperative agency bidding. Independent directors sharing high-end gear and negotiating retainers as an organized studio.",
-    urTitle: "مشترکہ پلیٹ فارم اور تعاون",
-    urBody: "جمعہ کی روایتی چائے کی بیٹھک، عالمی کلائنٹس کے ساتھ مشترکہ پچنگ اور تخلیقی رفاقت جہاں ہر رکن کو یکساں احترام حاصل ہے۔",
-    stat: "Members: 48 Residents",
-    urStat: "ارکان: ۴۸ ریذیڈنٹس",
-  },
-];
-
 function Stats({ items }: { items: [string, string][] }) {
   return (
     <div className="p-4 bg-mist grid grid-cols-2 gap-3 text-center">
@@ -251,47 +218,6 @@ export default function GazettePage() {
                   </span>
                 </figcaption>
               </figure>
-            ))}
-          </div>
-        </section>
-
-        {/* Pillars */}
-        <section className="mb-16">
-          <div className="flex flex-wrap justify-between items-baseline gap-2 pb-2 mb-6 border-b border-ink/20">
-            <div>
-              <p className="gz-label text-ink-soft">Infrastructure blueprint</p>
-              <h3 className="font-news text-[22px] leading-[28px]">Dispatch Highlights &amp; Colony Realia</h3>
-            </div>
-            <p lang="ur" dir="rtl" className="text-[18px]">
-              بنیادی سہولیات اور ستون
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {PILLARS.map((p) => (
-              <div key={p.no} className="p-6 bg-mist border border-line flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-ink/10">
-                    <span className="gz-label">{p.no}</span>
-                    <span lang="ur" dir="rtl" className="text-[12px] text-ink-soft">
-                      {p.tag}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-news text-[22px] leading-[28px] font-medium">{p.title}</h4>
-                    <p className="text-[14px] leading-[22px]">{p.body}</p>
-                  </div>
-                  <div lang="ur" dir="rtl" className="pt-3 border-t border-ink/10">
-                    <h5 className="text-[15px] font-semibold">{p.urTitle}</h5>
-                    <p className="text-[13px]">{p.urBody}</p>
-                  </div>
-                </div>
-                <div className="mt-6 flex items-center justify-between gap-2 text-ink-soft">
-                  <span className="gz-label">{p.stat}</span>
-                  <span lang="ur" dir="rtl" className="text-[12px]">
-                    {p.urStat}
-                  </span>
-                </div>
-              </div>
             ))}
           </div>
         </section>

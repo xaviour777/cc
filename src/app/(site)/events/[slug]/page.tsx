@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  BadgePercent,
   CalendarDays,
   Check,
   Clock3,
@@ -14,7 +13,6 @@ import {
   Users,
 } from "lucide-react";
 import { getEventBySlug } from "@/lib/data";
-import { getSetting } from "@/lib/stays";
 import { db } from "@/db";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { articles, articleTranslations } from "@/db/schema";
@@ -45,7 +43,6 @@ export default async function EventDetailPage({
   const event = await getEventBySlug(slug);
   if (!event || event.status === "DRAFT" || event.status === "CANCELLED") notFound();
 
-  const discount = event.residentDiscountPct ?? (await getSetting<number>("residentDiscountPct", 25));
   const seatsLeft = Math.max(0, event.capacity - event.seatsTaken);
   const pctTaken = Math.min(100, Math.round((event.seatsTaken / Math.max(1, event.capacity)) * 100));
 
@@ -178,22 +175,17 @@ export default async function EventDetailPage({
                   <p className="font-display font-extrabold text-3xl tracking-tight mt-2">
                     {event.ticketPkr > 0 ? pkr(event.ticketPkr) : "Free"}
                   </p>
-                  {event.ticketPkr > 0 && (
-                    <p className="text-paper/60 text-[13px] mt-1.5 inline-flex items-center gap-1.5">
-                      <BadgePercent size={13} /> Residents pay {pkr(Math.round((event.ticketPkr * (100 - discount) / 100)))} ({discount}% off)
-                    </p>
-                  )}
                 </div>
                 <div className="p-6 space-y-3 text-sm">
                   <p className="flex items-center gap-2.5">
                     <CalendarDays size={15} className="text-ink-soft shrink-0" />
-                    {dateLabel ?? "Dates announced soon — register interest now"}
+                    {dateLabel ?? event.timeLabel ?? "Dates announced soon — register interest now"}
                   </p>
                   {event.durationLabel && (
                     <p className="flex items-center gap-2.5">
                       <Clock3 size={15} className="text-ink-soft shrink-0" />
                       {event.durationLabel}
-                      {event.timeLabel ? ` · ${event.timeLabel}` : ""}
+                      {event.timeLabel && event.startDate ? ` · ${event.timeLabel}` : ""}
                     </p>
                   )}
                   <p className="flex items-center gap-2.5">

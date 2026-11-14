@@ -29,6 +29,9 @@ export default function ChapterReader({ chapters }: { chapters: Chapter[] }) {
               onClick={() => setMode(m.key)}
               className={cx(
                 "gz-label px-3 py-1.5 transition-colors",
+                m.key === "both" && "hidden md:inline-block",
+                // On phones "both" reads as English, with a simple English / اردو switch.
+                mode === "both" && m.key === "en" && "max-md:bg-ink max-md:text-paper",
                 mode === m.key ? "bg-ink text-paper" : "bg-paper hover:bg-line"
               )}
             >
@@ -48,7 +51,7 @@ export default function ChapterReader({ chapters }: { chapters: Chapter[] }) {
             <div className={cx("grid gap-10 items-start", mode === "both" ? "md:grid-cols-2" : "max-w-3xl mx-auto")}>
               {mode !== "ur" && <div className="space-y-4">{c.en}</div>}
               {mode !== "en" && (
-                <div lang="ur" dir="rtl" className="space-y-4">
+                <div lang="ur" dir="rtl" className={cx("space-y-4", mode === "both" && "hidden md:block")}>
                   {c.ur}
                 </div>
               )}
