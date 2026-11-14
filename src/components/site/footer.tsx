@@ -22,13 +22,18 @@ export default async function Footer() {
     getSetting<string>("contactEmail", "hello@contentcolony.live"),
   ]);
 
+  // Settings may hold a handle or a full URL; Instagram and Facebook have defaults.
+  const link = (v: string, base: string) => (!v ? "" : /^https?:\/\//.test(v) ? v : `${base}${v}`);
   const socials = [
-    { label: "Instagram", value: ig, href: ig ? `https://instagram.com/${ig}` : "", Icon: InstagramIcon },
-    { label: "TikTok", value: tt, href: tt ? `https://tiktok.com/@${tt}` : "", Icon: TikTokIcon },
-    { label: "YouTube", value: yt, href: yt ? `https://youtube.com/@${yt}` : "", Icon: YoutubeIcon },
-    { label: "Facebook", value: fb, href: fb ? `https://facebook.com/${fb}` : "", Icon: FacebookIcon },
-    { label: "LinkedIn", value: li, href: li ? `https://linkedin.com/company/${li}` : "", Icon: LinkedinIcon },
-  ].filter((s) => s.value);
+    { label: "Instagram", href: link(ig || "content.colony", "https://www.instagram.com/"), Icon: InstagramIcon },
+    { label: "Facebook", href: link(fb || "https://www.facebook.com/profile.php?id=61595642176792", "https://www.facebook.com/"), Icon: FacebookIcon },
+    { label: "YouTube", href: link(yt, "https://youtube.com/@"), Icon: YoutubeIcon },
+    { label: "TikTok", href: link(tt, "https://tiktok.com/@"), Icon: TikTokIcon },
+    { label: "LinkedIn", href: link(li, "https://linkedin.com/company/"), Icon: LinkedinIcon },
+  ].filter((s) => s.href);
+  // Round "3D" buttons that press down on hover / click.
+  const bubble =
+    "w-11 h-11 rounded-full border border-ink bg-paper text-ink flex items-center justify-center shadow-[0_4px_0_0_var(--color-ink)] transition-all duration-150 hover:translate-y-[2px] hover:shadow-[0_2px_0_0_var(--color-ink)] active:translate-y-[4px] active:shadow-none";
 
   return (
     <footer className="bg-mist border-t border-line">
@@ -44,7 +49,7 @@ export default async function Footer() {
               studio time, events and a community that feels like your people.
             </p>
             {socials.length > 0 ? (
-              <div className="flex gap-2 mt-6">
+              <div className="flex gap-3 mt-6">
                 {socials.map(({ label, href, Icon }) => (
                   <a
                     key={label}
@@ -52,9 +57,9 @@ export default async function Footer() {
                     target="_blank"
                     rel="noreferrer"
                     aria-label={label}
-                    className="w-10 h-10 rounded-full border border-line bg-paper flex items-center justify-center hover:border-ink transition-colors"
+                    className={bubble}
                   >
-                    <Icon width={16} height={16} />
+                    <Icon width={18} height={18} />
                   </a>
                 ))}
                 {wa && (
@@ -63,7 +68,7 @@ export default async function Footer() {
                     target="_blank"
                     rel="noreferrer"
                     aria-label="WhatsApp"
-                    className="w-10 h-10 rounded-full border border-line bg-paper flex items-center justify-center hover:border-ink transition-colors"
+                    className={bubble}
                   >
                     <WhatsAppIcon />
                   </a>

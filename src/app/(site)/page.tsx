@@ -170,7 +170,7 @@ export default async function HomePage() {
           <div className="grid md:grid-cols-2 gap-5">
             {products.map((p, i) => (
               <Reveal key={p.key} delay={i * 90}>
-                <Link href={`/stay?room=${p.key === "SHARED_BUNK" ? "bunker" : "private"}#request`} className="group block rounded-3xl overflow-hidden border border-line card-lift bg-paper">
+                <Link href={`/stay?room=${p.key === "SHARED_BUNK" ? "bunker" : "private"}`} className="group block rounded-3xl overflow-hidden border border-line card-lift bg-paper">
                   <div className="img-frame aspect-[16/10]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -216,7 +216,7 @@ export default async function HomePage() {
                         )}
                       </p>
                       <span className="inline-flex items-center gap-1.5 text-sm font-medium group-hover:gap-2.5 transition-all">
-                        Request this space <ArrowRight size={15} />
+                        View full details <ArrowRight size={15} />
                       </span>
                     </div>
                   </div>

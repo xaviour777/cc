@@ -4,6 +4,7 @@ import { getWhatsappNumber } from "@/lib/stays";
 import { getMember } from "@/lib/members";
 import Reveal from "@/components/ui/reveal";
 import PassBooking from "@/components/booking/pass-booking";
+import BelieveHero from "@/components/site/believe-hero";
 import { todayISO } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 export default async function BookPage({
   searchParams,
 }: {
-  searchParams: Promise<{ event?: string; stay?: string }>;
+  searchParams: Promise<{ event?: string; stay?: string; room?: string }>;
 }) {
   const sp = await searchParams;
   const today = todayISO();
@@ -41,18 +42,20 @@ export default async function BookPage({
   const initialEvent = events.find((e) => e.slug === sp.event)?.slug;
 
   return (
+    <>
+    <BelieveHero primaryHref="#events" primaryLabel="Book now" secondaryHref="#stay" />
     <div className="px-5 md:px-10 py-14 md:py-20">
       <div className="mx-auto max-w-3xl">
         <Reveal className="text-center">
           <p className="kicker text-ink-soft">Book</p>
           <h1 className="display-lg mt-4">
-            Book your pass.
+            Book now.
             <br />
             <span className="serif-em normal-case">Meet your people.</span>
           </h1>
           <p className="lede mt-5">
-            Pick your workshop and fill one short form. Our team calls you on WhatsApp to
-            confirm. Just want to stay? Send a stay request below — we share the price on WhatsApp.
+            Pick an event, a room, or both, and fill one short form. Our team calls you on
+            WhatsApp to confirm.
           </p>
         </Reveal>
         <div className="mt-12">
@@ -61,11 +64,13 @@ export default async function BookPage({
             whatsapp={whatsapp}
             initialEvent={initialEvent}
             initialStay={sp.stay !== undefined}
+            initialRoom={sp.room === "private" ? "Private Room" : sp.room === "bunker" ? "Bunker" : undefined}
             member={member ? { name: member.name, email: member.email, phone: member.phone ?? "" } : null}
           />
         </div>
       </div>
     </div>
+    </>
   );
 }
 

@@ -219,11 +219,7 @@ export default function StayRequest({
       </div>
       <input type="text" tabIndex={-1} autoComplete="off" className="hidden" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} aria-hidden />
 
-      <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-line pt-5">
-        <p className="text-ink-soft text-[13px] max-w-sm">
-          No payment, no pressure. Just you, your dates and your dream. A real person from our team will
-          welcome you on WhatsApp.
-        </p>
+      <div className="mt-6 flex justify-end border-t border-line pt-5">
         <button type="submit" disabled={busy} className="btn btn-primary">
           {busy ? <Loader2 size={16} className="animate-spin" /> : null}
           Count me in <ArrowRight size={16} />
